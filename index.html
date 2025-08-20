@@ -1128,7 +1128,7 @@
             const txHTML = liveTransactions.map(tx => `
                 <div class="tx-item ${tx.isNew ? 'new-tx' : ''}">
                     <div class="tx-info">
-                        <a href="https://explorer.monad.xyz/tx/${tx.hash}" target="_blank" class="tx-hash">
+                        <a href="https://testnet.monadexplorer.com/tx/${tx.hash}" target="_blank" class="tx-hash">
                             ${tx.hash.substring(0, 10)}...${tx.hash.substring(tx.hash.length - 8)}
                         </a>
                         <div class="tx-details">
@@ -1247,3 +1247,4 @@
     </script>
 </body>
 </html>
+
