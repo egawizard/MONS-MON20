@@ -103,6 +103,18 @@
             animation: pulse 2s infinite;
         }
 
+        .status-dot.connected {
+            background: #4ecdc4;
+        }
+
+        .status-dot.connecting {
+            background: #ffd93d;
+        }
+
+        .status-dot.error {
+            background: #ff6b6b;
+        }
+
         @keyframes pulse {
             0% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(1.2); }
@@ -326,6 +338,119 @@
             color: #ff6b6b;
         }
 
+        .live-tx-container {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .tx-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tx-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .tx-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .tx-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(78, 205, 196, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .tx-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .tx-hash {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #4ecdc4;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .tx-hash:hover {
+            color: #45b7d1;
+        }
+
+        .tx-details {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .tx-amount {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #4ecdc4;
+            text-align: right;
+        }
+
+        .tx-time {
+            font-size: 0.8rem;
+            opacity: 0.6;
+            text-align: right;
+        }
+
+        .tx-loading {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.6;
+            font-style: italic;
+        }
+
+        .tx-empty {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.6;
+        }
+
+        .new-tx {
+            animation: highlight 2s ease;
+        }
+
+        @keyframes highlight {
+            0% { background: rgba(78, 205, 196, 0.3); }
+            100% { background: rgba(255, 255, 255, 0.05); }
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -414,6 +539,29 @@
                     <button class="btn connect-wallet-btn" onclick="connectWallet()">
                         Connect Wallet to Transfer
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 30px;">
+            <h2>
+                <span>📡</span>
+                Live Mint Transactions
+            </h2>
+            
+            <div class="live-tx-container">
+                <div class="tx-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div class="status-indicator">
+                        <div class="status-dot" id="liveStatus"></div>
+                        <span id="statusText">Connecting to live feed...</span>
+                    </div>
+                    <button class="btn" id="refreshBtn" onclick="refreshTransactions()" style="padding: 8px 16px; font-size: 0.9rem;">
+                        🔄 Refresh
+                    </button>
+                </div>
+                
+                <div class="tx-list" id="liveTransactions">
+                    <div class="tx-loading">Loading recent transactions...</div>
                 </div>
             </div>
         </div>
@@ -580,6 +728,9 @@
         let signer;
         let contract;
         let userAddress;
+        let liveTransactions = [];
+        let lastBlockNumber = 0;
+        let liveUpdateInterval;
 
         // Create animated stars background
         function createStars() {
@@ -606,6 +757,7 @@
         async function init() {
             createStars();
             await loadContractData();
+            await startLiveTransactionFeed();
             setInterval(loadContractData, 30000); // Update every 30 seconds
         }
 
@@ -825,6 +977,210 @@
             setTimeout(() => {
                 alert.style.display = 'none';
             }, 5000);
+        }
+
+        // Live transaction feed functions
+        async function startLiveTransactionFeed() {
+            try {
+                const rpcProvider = new ethers.JsonRpcProvider(RPC_URL);
+                
+                // Update status
+                updateLiveStatus('connected', 'Live feed active');
+                
+                // Get initial transactions
+                await loadRecentTransactions();
+                
+                // Start polling for new transactions
+                liveUpdateInterval = setInterval(async () => {
+                    await checkForNewTransactions();
+                }, 10000); // Check every 10 seconds
+                
+            } catch (error) {
+                console.error('Error starting live feed:', error);
+                updateLiveStatus('error', 'Connection failed');
+            }
+        }
+
+        async function loadRecentTransactions() {
+            try {
+                const rpcProvider = new ethers.JsonRpcProvider(RPC_URL);
+                const readContract = new ethers.Contract(CONTRACT_ADDRESS, [
+                    {
+                        "anonymous": false,
+                        "inputs": [
+                            {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+                            {"indexed": true, "internalType": "string", "name": "tick", "type": "string"},
+                            {"indexed": false, "internalType": "string", "name": "operation", "type": "string"},
+                            {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"},
+                            {"indexed": false, "internalType": "string", "name": "data", "type": "string"},
+                            {"indexed": false, "internalType": "uint256", "name": "inscriptionNumber", "type": "uint256"}
+                        ],
+                        "name": "Inscribe",
+                        "type": "event"
+                    }
+                ], rpcProvider);
+
+                // Get current block number
+                const currentBlock = await rpcProvider.getBlockNumber();
+                lastBlockNumber = currentBlock;
+                
+                // Get recent events (last 100 blocks)
+                const fromBlock = Math.max(0, currentBlock - 100);
+                
+                const filter = readContract.filters.Inscribe();
+                const events = await readContract.queryFilter(filter, fromBlock, currentBlock);
+                
+                // Process events
+                const processedTxs = await Promise.all(
+                    events.slice(-10).reverse().map(async (event) => {
+                        const block = await rpcProvider.getBlock(event.blockNumber);
+                        return {
+                            hash: event.transactionHash,
+                            user: event.args.user,
+                            operation: event.args.operation,
+                            amount: parseInt(event.args.amount.toString()),
+                            timestamp: block.timestamp,
+                            blockNumber: event.blockNumber,
+                            inscriptionNumber: parseInt(event.args.inscriptionNumber.toString())
+                        };
+                    })
+                );
+                
+                liveTransactions = processedTxs;
+                renderTransactions();
+                
+            } catch (error) {
+                console.error('Error loading recent transactions:', error);
+                showTransactionError();
+            }
+        }
+
+        async function checkForNewTransactions() {
+            try {
+                const rpcProvider = new ethers.JsonRpcProvider(RPC_URL);
+                const currentBlock = await rpcProvider.getBlockNumber();
+                
+                if (currentBlock > lastBlockNumber) {
+                    const readContract = new ethers.Contract(CONTRACT_ADDRESS, [
+                        {
+                            "anonymous": false,
+                            "inputs": [
+                                {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+                                {"indexed": true, "internalType": "string", "name": "tick", "type": "string"},
+                                {"indexed": false, "internalType": "string", "name": "operation", "type": "string"},
+                                {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"},
+                                {"indexed": false, "internalType": "string", "name": "data", "type": "string"},
+                                {"indexed": false, "internalType": "uint256", "name": "inscriptionNumber", "type": "uint256"}
+                            ],
+                            "name": "Inscribe",
+                            "type": "event"
+                        }
+                    ], rpcProvider);
+
+                    const filter = readContract.filters.Inscribe();
+                    const events = await readContract.queryFilter(filter, lastBlockNumber + 1, currentBlock);
+                    
+                    if (events.length > 0) {
+                        const newTxs = await Promise.all(
+                            events.map(async (event) => {
+                                const block = await rpcProvider.getBlock(event.blockNumber);
+                                return {
+                                    hash: event.transactionHash,
+                                    user: event.args.user,
+                                    operation: event.args.operation,
+                                    amount: parseInt(event.args.amount.toString()),
+                                    timestamp: block.timestamp,
+                                    blockNumber: event.blockNumber,
+                                    inscriptionNumber: parseInt(event.args.inscriptionNumber.toString()),
+                                    isNew: true
+                                };
+                            })
+                        );
+                        
+                        // Add new transactions to the beginning
+                        liveTransactions = [...newTxs.reverse(), ...liveTransactions.slice(0, 9)];
+                        renderTransactions();
+                        updateLiveStatus('connected', `Live feed active • ${newTxs.length} new`);
+                        
+                        // Reset status after 3 seconds
+                        setTimeout(() => {
+                            updateLiveStatus('connected', 'Live feed active');
+                        }, 3000);
+                    }
+                    
+                    lastBlockNumber = currentBlock;
+                }
+                
+            } catch (error) {
+                console.error('Error checking for new transactions:', error);
+                updateLiveStatus('error', 'Connection lost');
+            }
+        }
+
+        function renderTransactions() {
+            const container = document.getElementById('liveTransactions');
+            
+            if (liveTransactions.length === 0) {
+                container.innerHTML = '<div class="tx-empty">No recent mint transactions found</div>';
+                return;
+            }
+            
+            const txHTML = liveTransactions.map(tx => `
+                <div class="tx-item ${tx.isNew ? 'new-tx' : ''}">
+                    <div class="tx-info">
+                        <a href="https://explorer.monad.xyz/tx/${tx.hash}" target="_blank" class="tx-hash">
+                            ${tx.hash.substring(0, 10)}...${tx.hash.substring(tx.hash.length - 8)}
+                        </a>
+                        <div class="tx-details">
+                            ${tx.user.substring(0, 6)}...${tx.user.substring(tx.user.length - 4)} • 
+                            ${tx.operation.toUpperCase()} • 
+                            #${tx.inscriptionNumber}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="tx-amount">+${tx.amount.toLocaleString()} MONS</div>
+                        <div class="tx-time">${formatTime(tx.timestamp)}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = txHTML;
+        }
+
+        function formatTime(timestamp) {
+            const now = Math.floor(Date.now() / 1000);
+            const diff = now - timestamp;
+            
+            if (diff < 60) return `${diff}s ago`;
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return `${Math.floor(diff / 86400)}d ago`;
+        }
+
+        function updateLiveStatus(status, text) {
+            const statusDot = document.getElementById('liveStatus');
+            const statusText = document.getElementById('statusText');
+            
+            statusDot.className = `status-dot ${status}`;
+            statusText.textContent = text;
+        }
+
+        function showTransactionError() {
+            const container = document.getElementById('liveTransactions');
+            container.innerHTML = '<div class="tx-empty">Failed to load transactions. <button onclick="refreshTransactions()" style="background: none; border: none; color: #4ecdc4; cursor: pointer; text-decoration: underline;">Try again</button></div>';
+        }
+
+        async function refreshTransactions() {
+            document.getElementById('liveTransactions').innerHTML = '<div class="tx-loading">Refreshing transactions...</div>';
+            updateLiveStatus('connecting', 'Refreshing...');
+            
+            // Clear existing interval
+            if (liveUpdateInterval) {
+                clearInterval(liveUpdateInterval);
+            }
+            
+            // Restart live feed
+            await startLiveTransactionFeed();
         }
 
         // Set max amount
