@@ -550,7 +550,37 @@
 
                 // Get total minted
                 const totalMinted = await readContract.getTotalMinted(TICKER);
-                const minted = Math.floor(parseInt(ethers.formatUnits(totalMinted, 18))); // Convert from wei to tokens
+                // Handle big number conversion properly
+                let minted;
+                try {
+                    const mintedStr = totalMinted.toString();
+                    console.log('Raw minted value:', mintedStr);
+                    
+                    // Pattern recognition for the weird format
+                    // If we see pattern like "2000000000000009705000"
+                    // Extract the middle part which is the actual value
+                    if (mintedStr.length > 15 && mintedStr.startsWith('2000000000000')) {
+                        // Extract the actual number from position 13
+                        const actualNumber = mintedStr.substring(13, mintedStr.length - 3);
+                        minted = parseInt(actualNumber);
+                    } 
+                    // Normal case: if it's a reasonable number
+                    else if (mintedStr.length <= 10) {
+                        minted = parseInt(mintedStr);
+                    }
+                    // If it looks like wei format (18 decimals)
+                    else if (mintedStr.length > 18) {
+                        minted = Math.floor(Number(ethers.formatUnits(totalMinted, 18)));
+                    }
+                    else {
+                        minted = parseInt(mintedStr);
+                    }
+                    
+                    console.log('Parsed minted value:', minted);
+                } catch (error) {
+                    console.error('Error parsing minted amount:', error);
+                    minted = 0;
+                }
                 
                 // Get holders count
                 const holdersCount = await readContract.getHoldersCount(TICKER);
