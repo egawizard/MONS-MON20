@@ -550,7 +550,7 @@
 
                 // Get total minted
                 const totalMinted = await readContract.getTotalMinted(TICKER);
-                const minted = parseInt(totalMinted.toString());
+                const minted = Math.floor(parseInt(ethers.formatUnits(totalMinted, 18))); // Convert from wei to tokens
                 
                 // Get holders count
                 const holdersCount = await readContract.getHoldersCount(TICKER);
@@ -558,12 +558,12 @@
 
                 // Get mint fee
                 const mintFee = await readContract.mintFee();
-                const feeInEther = ethers.formatEther(mintFee);
+                const feeInMon = ethers.formatEther(mintFee);
 
                 // Update UI
                 document.getElementById('minted').textContent = minted.toLocaleString();
                 document.getElementById('holders').textContent = holders.toLocaleString();
-                document.getElementById('mintFeeDisplay').textContent = `${feeInEther} ETH`;
+                document.getElementById('mintFeeDisplay').textContent = `${feeInMon} MON`;
 
                 // Update progress bar
                 const progress = (minted / MAX_SUPPLY) * 100;
