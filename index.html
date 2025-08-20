@@ -557,11 +557,11 @@
                     console.log('Raw minted value:', mintedStr);
                     
                     // Pattern recognition for the weird format
-                    // If we see pattern like "2000000000000009705000"
+                    // If we see pattern like "2000000000000009706000"
                     // Extract the middle part which is the actual value
                     if (mintedStr.length > 15 && mintedStr.startsWith('2000000000000')) {
-                        // Extract the actual number from position 13
-                        const actualNumber = mintedStr.substring(13, mintedStr.length - 3);
+                        // Extract the actual number from position 13 to end
+                        const actualNumber = mintedStr.substring(13);
                         minted = parseInt(actualNumber);
                     } 
                     // Normal case: if it's a reasonable number
