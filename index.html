@@ -528,17 +528,29 @@
             try {
                 const balance = await provider.getBalance(userAddress);
                 const balanceInEth = ethers.formatEther(balance);
-                document.getElementById('walletBalance').textContent = `${parseFloat(balanceInEth).toFixed(4)} MON`;
+                const balanceNumber = parseFloat(balanceInEth);
+                document.getElementById('walletBalance').textContent = `${balanceNumber.toFixed(4)} MON`;
             } catch (error) {
                 console.error('Error fetching balance:', error);
+                document.getElementById('walletBalance').textContent = '0 MON';
             }
         }
 
         async function updateUserBalance() {
             try {
+                if (!userAddress) return;
+                
                 const balance = await contract.getBalance(userAddress, "MONS");
+                console.log('User balance Wei:', balance.toString());
+                
+                // Convert from Wei to normal number (18 decimals)
                 const formattedBalance = ethers.formatEther(balance);
-                document.getElementById('userBalance').textContent = `${parseFloat(formattedBalance).toLocaleString()} MONS`;
+                const balanceNumber = parseFloat(formattedBalance);
+                
+                console.log('User balance formatted:', formattedBalance);
+                console.log('User balance number:', balanceNumber);
+                
+                document.getElementById('userBalance').textContent = `${balanceNumber.toLocaleString('en-US', {maximumFractionDigits: 0})} MONS`;
             } catch (error) {
                 console.error('Error fetching user balance:', error);
                 document.getElementById('userBalance').textContent = '0 MONS';
@@ -550,29 +562,28 @@
                 const readOnlyProvider = new ethers.JsonRpcProvider(RPC_URL);
                 const readOnlyContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readOnlyProvider);
                 
-                const totalMinted = await readOnlyContract.getTotalMinted("MONS");
-                const mintedAmount = ethers.formatEther(totalMinted);
+                // Get total minted from contract
+                const totalMintedWei = await readOnlyContract.getTotalMinted("MONS");
+                console.log('Total minted Wei:', totalMintedWei.toString());
+                
+                // Convert from Wei to normal number (18 decimals)
+                const mintedAmount = ethers.formatEther(totalMintedWei);
                 const mintedNumber = parseFloat(mintedAmount);
                 
-                // Fix the progress calculation - assume 10M is already minted based on user's note
-                const actualMinted = Math.max(10000000, mintedNumber); // At least 10M minted
-                const percentage = (actualMinted / TOTAL_SUPPLY) * 100;
+                console.log('Minted amount formatted:', mintedAmount);
+                console.log('Minted number:', mintedNumber);
                 
-                document.getElementById('currentMinted').textContent = actualMinted.toLocaleString();
+                const percentage = (mintedNumber / TOTAL_SUPPLY) * 100;
+                
+                document.getElementById('currentMinted').textContent = mintedNumber.toLocaleString('en-US', {maximumFractionDigits: 0});
                 document.getElementById('progressBar').style.width = Math.min(percentage, 100) + '%';
                 document.getElementById('progressText').textContent = 
-                    `${actualMinted.toLocaleString()} / ${TOTAL_SUPPLY.toLocaleString()} (${percentage.toFixed(2)}%)`;
+                    `${mintedNumber.toLocaleString('en-US', {maximumFractionDigits: 0})} / ${TOTAL_SUPPLY.toLocaleString()} (${percentage.toFixed(2)}%)`;
                 
             } catch (error) {
                 console.error('Error updating progress:', error);
-                // Fallback to show 10M minted as mentioned by user
-                const fallbackMinted = 10000000;
-                const percentage = (fallbackMinted / TOTAL_SUPPLY) * 100;
-                
-                document.getElementById('currentMinted').textContent = fallbackMinted.toLocaleString();
-                document.getElementById('progressBar').style.width = percentage + '%';
-                document.getElementById('progressText').textContent = 
-                    `${fallbackMinted.toLocaleString()} / ${TOTAL_SUPPLY.toLocaleString()} (${percentage.toFixed(2)}%)`;
+                document.getElementById('currentMinted').textContent = 'Error loading';
+                document.getElementById('progressText').textContent = 'Error loading progress';
             }
         }
 
@@ -597,7 +608,10 @@
                 const amountInWei = ethers.parseEther(amount.toString());
                 
                 // Call mint function
-                const tx = await contract.mint("MONS", amountInWei, { value: mintFee });
+                const tx = await contract.mint("MONS", amountInWei, { 
+                    value: mintFee,
+                    gasLimit: 300000 // Add gas limit to prevent estimation issues
+                });
                 
                 showStatus('🔄 Transaction submitted! Waiting for confirmation...', 'warning');
                 
@@ -605,8 +619,12 @@
                 
                 if (receipt.status === 1) {
                     showStatus(`✅ Successfully minted ${amount} MONS tokens!`, 'success');
-                    await updateUserBalance();
-                    await updateProgress();
+                    
+                    // Wait a moment for blockchain to update then refresh data
+                    setTimeout(async () => {
+                        await updateUserBalance();
+                        await updateProgress();
+                    }, 2000);
                 } else {
                     showStatus('❌ Transaction failed!', 'error');
                 }
@@ -666,7 +684,11 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Initializing application...');
             await updateProgress();
+            
+            // Auto-refresh progress every 30 seconds
+            setInterval(updateProgress, 30000);
             
             // Check if already connected
             if (typeof window.ethereum !== 'undefined') {
