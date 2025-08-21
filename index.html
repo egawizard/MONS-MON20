@@ -1,893 +1,182 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MON-20 Inscription - First Token Inscription on MONAD</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-            color: #fff;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .stars {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: transparent;
-        }
-
-        .star {
-            position: absolute;
-            background: #fff;
-            border-radius: 50%;
-            animation: twinkle 2s infinite alternate;
-        }
-
-        @keyframes twinkle {
-            0% { opacity: 0.3; transform: scale(1); }
-            100% { opacity: 1; transform: scale(1.2); }
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .header {
-            text-align: center;
-            padding: 40px 0;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            margin: 20px 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-
-        .logo {
-            font-size: 4rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
-            background-size: 400% 400%;
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: gradient 3s ease infinite;
-            margin-bottom: 10px;
-        }
-
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .subtitle {
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-            opacity: 0.8;
-        }
-
-        .network-info {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(78, 205, 196, 0.2);
-            padding: 10px 20px;
-            border-radius: 25px;
-            border: 1px solid #4ecdc4;
-            gap: 10px;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            background: #4ecdc4;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.2); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 30px;
-            margin: 30px 0;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .card h2 {
-            font-size: 1.8rem;
-            margin-bottom: 20px;
-            color: #4ecdc4;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .token-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .info-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .info-label {
-            font-size: 0.9rem;
-            opacity: 0.7;
-            margin-bottom: 5px;
-        }
-
-        .info-value {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #4ecdc4;
-        }
-
-        .progress-container {
-            margin: 20px 0;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4ecdc4, #45b7d1);
-            transition: width 0.5s ease;
-            position: relative;
-        }
-
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
-        .mint-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .input-field {
-            flex: 1;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            color: #fff;
-            font-size: 1rem;
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: #4ecdc4;
-            box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
-        }
-
-        .btn {
-            padding: 15px 30px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: linear-gradient(45deg, #4ecdc4, #45b7d1);
-            color: #fff;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .btn:hover::before {
-            left: 100%;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(78, 205, 196, 0.4);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .wallet-connection {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .connect-wallet-btn {
-            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
-            padding: 15px 40px;
-            font-size: 1.1rem;
-        }
-
-        .footer {
-            text-align: center;
-            padding: 40px 20px;
-            margin-top: 50px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .creator-credit {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px 20px;
-            border-radius: 25px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            text-decoration: none;
-            color: #fff;
-            transition: all 0.3s ease;
-        }
-
-        .creator-credit:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .alert {
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 10px;
-            display: none;
-        }
-
-        .alert.success {
-            background: rgba(78, 205, 196, 0.2);
-            border: 1px solid #4ecdc4;
-            color: #4ecdc4;
-        }
-
-        .alert.error {
-            background: rgba(255, 107, 107, 0.2);
-            border: 1px solid #ff6b6b;
-            color: #ff6b6b;
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
-            .token-info {
-                grid-template-columns: 1fr;
-            }
-            
-            .logo {
-                font-size: 2.5rem;
-            }
-            
-            .card {
-                padding: 20px;
-            }
-        }
-
-        @media (max-width: 1024px) and (min-width: 769px) {
-            .main-content {
-                grid-template-columns: 1fr 1fr;
-                gap: 20px;
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mon-20 Mint & Trade Tool — Monad Testnet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.0/dist/ethers.umd.min.js"></script>
 </head>
-<body>
-    <div class="stars" id="stars"></div>
-    
-    <div class="container">
-        <header class="header">
-            <div class="logo">MON-20</div>
-            <div class="subtitle">First Token Inscription Protocol on MONAD Testnet</div>
-            <div class="network-info">
-                <div class="status-dot"></div>
-                <span>MONAD Testnet • Chain ID: 10143</span>
-                <div class="card">
-                <h2>
-                    <span>💸</span>
-                    Transfer MONS
-                </h2>
-                
-                <div id="transferSection" style="display: none;">
-                    <div class="alert" id="transferAlert"></div>
-                    
-                    <div class="mint-form">
-                        <div class="info-item">
-                            <div class="info-label">Your Balance</div>
-                            <div class="info-value" id="transferUserBalance">0 MONS</div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <input 
-                                type="text" 
-                                class="input-field" 
-                                id="recipientAddress" 
-                                placeholder="Recipient wallet address (0x...)"
-                                style="flex: 2;"
-                            >
-                        </div>
-                        
-                        <div class="input-group">
-                            <input 
-                                type="number" 
-                                class="input-field" 
-                                id="transferAmount" 
-                                placeholder="Amount to transfer"
-                                min="1"
-                            >
-                            <button class="btn" onclick="setMaxTransferAmount()">MAX</button>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Gas Fee</div>
-                            <div class="info-value">~0.001 MON</div>
-                        </div>
-                        
-                        <button class="btn" id="transferBtn" onclick="transferTokens()" style="background: linear-gradient(45deg, #ff6b6b, #ff8e8e);">
-                            Transfer MONS
-                        </button>
-                    </div>
-                </div>
+<body class="bg-gray-900 text-gray-100 font-sans">
+  <div class="max-w-7xl mx-auto p-4">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-2xl font-bold">Mint & Trade $MONS</h1>
+      <button id="connectBtn" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">Connect Wallet</button>
+    </div>
+    <p class="mb-4 text-sm">Network: chainId <b>10143</b> (0x279F) · RPC: <a href="https://testnet-rpc.monad.xyz" class="text-blue-400">https://testnet-rpc.monad.xyz</a></p>
 
-                <div id="transferWalletConnection" class="wallet-connection">
-                    <button class="btn connect-wallet-btn" onclick="connectWallet()">
-                        Connect Wallet to Transfer
-                    </button>
-                </div>
-            </div>
-        </div>
-        </header>
+    <!-- Mint Form -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="p-4 rounded-2xl bg-gray-800 shadow">
+        <h2 class="text-xl font-semibold mb-2">Mint $MONS</h2>
+        <label class="block text-sm">Amount (≤ 1000)</label>
+        <input id="mintAmount" type="number" min="1" max="1000" placeholder="e.g. 100" class="w-full p-2 rounded bg-gray-700 text-white mb-2" />
+        <div class="text-sm mb-2">Max (1000) Mint MON-20</div>
+        <button id="mintBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Mint</button>
+      </div>
 
-        <div class="main-content">
-            <div class="card">
-                <h2>
-                    <span>🪙</span>
-                    Token Information
-                </h2>
-                <div class="token-info">
-                    <div class="info-item">
-                        <div class="info-label">Ticker</div>
-                        <div class="info-value">$MONS</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Total Supply</div>
-                        <div class="info-value">21,000,000</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Limit per Mint</div>
-                        <div class="info-value">1,000</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Decimals</div>
-                        <div class="info-value">18</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Minted</div>
-                        <div class="info-value" id="minted">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Holders</div>
-                        <div class="info-value" id="holders">Loading...</div>
-                    </div>
-                </div>
-                
-                <div class="progress-container">
-                    <div class="info-label">Mint Progress</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                    </div>
-                    <div style="text-align: center; margin-top: 10px;">
-                        <span id="progressText">0%</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>
-                    <span>⚡</span>
-                    Mint MONS
-                </h2>
-                
-                <div class="wallet-connection" id="walletConnection">
-                    <button class="btn connect-wallet-btn" onclick="connectWallet()">
-                        Connect Wallet
-                    </button>
-                </div>
-
-                <div id="mintSection" style="display: none;">
-                    <div class="alert" id="alert"></div>
-                    
-                    <div class="mint-form">
-                        <div class="info-item">
-                            <div class="info-label">Your Balance</div>
-                            <div class="info-value" id="userBalance">0 MONS</div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <input 
-                                type="number" 
-                                class="input-field" 
-                                id="mintAmount" 
-                                placeholder="Amount to mint (max 1000)"
-                                min="1"
-                                max="1000"
-                                value="1000"
-                            >
-                            <button class="btn" onclick="setMaxAmount()">MAX</button>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Mint Fee</div>
-                            <div class="info-value" id="mintFeeDisplay">Loading...</div>
-                        </div>
-                        
-                        <button class="btn" id="mintBtn" onclick="mint()">
-                            Mint MONS
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <!-- Overview -->
+      <div class="p-4 rounded-2xl bg-gray-800 shadow">
+        <h2 class="text-xl font-semibold mb-2">$MONS Overview</h2>
+        <ul class="text-sm space-y-1">
+          <li>Max supply: <span id="maxSupply">-</span></li>
+          <li>Limit per mint: <span id="limitPerMint">-</span></li>
+          <li>Total minted: <span id="totalMinted">-</span></li>
+          <li>Mint progress: <span id="mintProgress">-</span></li>
+          <li>Holders: <span id="holdersCount">-</span></li>
+          <li>Your balance: <span id="yourBalance">-</span></li>
+        </ul>
+        <button id="refreshBtn" class="mt-2 text-xs text-blue-400">Refresh</button>
+      </div>
     </div>
 
-    <footer class="footer">
-        <div>
-            <p style="margin-bottom: 20px;">Contract: <code>0x07169f0F890C3595421512D98DC79b8bce6E5fA6</code></p>
-            <a href="https://x.com/ega_2ez4crypto" target="_blank" class="creator-credit">
-                <span>🚀</span>
-                Created by @ega_2ez4crypto
-            </a>
+    <!-- Transfer & Activity -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      <div class="p-4 rounded-2xl bg-gray-800 shadow">
+        <h2 class="text-xl font-semibold mb-2">Peer-to-Peer Transfer</h2>
+        <label class="block text-sm">Recipient address</label>
+        <input id="recipient" placeholder="0x..." class="w-full p-2 rounded bg-gray-700 text-white mb-2" />
+        <label class="block text-sm">Amount (MONS)</label>
+        <input id="transferAmount" type="number" class="w-full p-2 rounded bg-gray-700 text-white mb-2" />
+        <div class="flex gap-2">
+          <button id="sendBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">Send</button>
+          <button id="sendMaxBtn" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded">Send Max</button>
         </div>
-    </footer>
+      </div>
 
-    <script>
-        // Contract configuration
-        const CONTRACT_ADDRESS = '0x07169f0F890C3595421512D98DC79b8bce6E5fA6';
-        const RPC_URL = 'https://testnet-rpc.monad.xyz';
-        const CHAIN_ID = 10143;
-        const TICKER = 'MONS';
-        const MAX_SUPPLY = 21000000;
-        const LIMIT_PER_MINT = 1000;
+      <div class="p-4 rounded-2xl bg-gray-800 shadow">
+        <h2 class="text-xl font-semibold mb-2">Activity (Inscribe events)</h2>
+        <button id="loadActivityBtn" class="mb-2 text-xs text-blue-400">Load</button>
+        <ul id="activityFeed" class="text-xs space-y-1 max-h-48 overflow-y-auto"></ul>
+      </div>
+    </div>
 
-        // Contract ABI (simplified for the functions we need)
-        const CONTRACT_ABI = [
-            {
-                "inputs": [{"internalType": "string", "name": "tick", "type": "string"}, {"internalType": "uint256", "name": "amount", "type": "uint256"}],
-                "name": "mint",
-                "outputs": [],
-                "stateMutability": "payable",
-                "type": "function"
-            },
-            {
-                "inputs": [{"internalType": "address", "name": "to", "type": "address"}, {"internalType": "string", "name": "tick", "type": "string"}, {"internalType": "uint256", "name": "amount", "type": "uint256"}],
-                "name": "transfer",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "string", "name": "tick", "type": "string"}],
-                "name": "getBalance",
-                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [{"internalType": "string", "name": "tick", "type": "string"}],
-                "name": "getTotalMinted",
-                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [{"internalType": "string", "name": "tick", "type": "string"}],
-                "name": "getHoldersCount",
-                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "mintFee",
-                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                "stateMutability": "view",
-                "type": "function"
-            }
-        ];
+    <!-- Top Holders -->
+    <div class="p-4 rounded-2xl bg-gray-800 shadow mt-6">
+      <h2 class="text-xl font-semibold mb-2">Top Holders</h2>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-700">
+            <th class="text-left p-2">#</th>
+            <th class="text-left p-2">Address</th>
+            <th class="text-left p-2">Balance (MONS)</th>
+          </tr>
+        </thead>
+        <tbody id="holdersTable"></tbody>
+      </table>
+      <div class="text-xs text-gray-400 mt-2">Live query (first 100 addresses, invalid > maxSupply or > limitPerMint excluded)</div>
+    </div>
 
-        let provider;
-        let signer;
-        let contract;
-        let userAddress;
+    <footer class="mt-6 text-xs text-gray-500">Created by <a href="https://x.com/ega_2ez4crypto" class="text-blue-400">@ega_2ez4crypto</a></footer>
+  </div>
 
-        // Create animated stars background
-        function createStars() {
-            const starsContainer = document.getElementById('stars');
-            const numStars = 100;
+  <script>
+    const CONTRACT_ADDR = "0x07169f0F890C3595421512D98DC79b8bce6E5fA6";
+    const ABI = [
+      {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"string","name":"tick","type":"string"},{"indexed":false,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"amt","type":"uint256"}],"name":"InscriptionMinted","type":"event"},
+      {"inputs":[],"name":"getTokenInfo","outputs":[{"internalType":"string","name":"tick","type":"string"},{"internalType":"uint256","name":"maxSupply","type":"uint256"},{"internalType":"uint256","name":"limitPerMint","type":"uint256"},{"internalType":"uint256","name":"totalMinted","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"string","name":"tick","type":"string"},{"internalType":"uint256","name":"amt","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"string","name":"tick","type":"string"},{"internalType":"address","name":"owner","type":"address"}],"name":"getBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"string","name":"tick","type":"string"}],"name":"getHolders","outputs":[{"components":[{"internalType":"address","name":"addr","type":"address"},{"internalType":"uint256","name":"balance","type":"uint256"}],"internalType":"struct Monscription.Holder[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"string","name":"tick","type":"string"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amt","type":"uint256"}],"name":"transfer","outputs":[],"stateMutability":"nonpayable","type":"function"}
+    ];
 
-            for (let i = 0; i < numStars; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                
-                const size = Math.random() * 3 + 1;
-                star.style.width = size + 'px';
-                star.style.height = size + 'px';
-                star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 100 + '%';
-                star.style.animationDelay = Math.random() * 2 + 's';
-                star.style.animationDuration = (Math.random() * 3 + 2) + 's';
-                
-                starsContainer.appendChild(star);
-            }
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    let signer;
+    let contract;
+
+    const formatUnits = (val) => Number(ethers.formatUnits(val, 18));
+    const formatNumber = (n) => n.toLocaleString();
+
+    async function connectWallet() {
+      if (!window.ethereum) return alert("MetaMask not found");
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      signer = await provider.getSigner();
+      contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+      const net = await provider.getNetwork();
+      if (net.chainId !== 10143n) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: "0x279F" }]
+          });
+        } catch (e) {
+          alert("Please switch to Monad Testnet manually.");
         }
+      }
+      document.getElementById("connectBtn").innerText = "Wallet Connected";
+      refreshData();
+    }
 
-        // Initialize the app
-        async function init() {
-            createStars();
-            await loadContractData();
-            setInterval(loadContractData, 30000); // Update every 30 seconds
-        }
+    document.getElementById("connectBtn").onclick = connectWallet;
 
-        // Load contract data
-        async function loadContractData() {
-            try {
-                const rpcProvider = new ethers.JsonRpcProvider(RPC_URL);
-                const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, rpcProvider);
+    async function refreshData() {
+      if (!contract) contract = new ethers.Contract(CONTRACT_ADDR, ABI, provider);
+      const info = await contract.getTokenInfo();
+      document.getElementById("maxSupply").innerText = formatNumber(formatUnits(info.maxSupply));
+      document.getElementById("limitPerMint").innerText = formatNumber(formatUnits(info.limitPerMint));
+      document.getElementById("totalMinted").innerText = formatNumber(formatUnits(info.totalMinted));
+      const progress = (Number(info.totalMinted) / Number(info.maxSupply)) * 100;
+      document.getElementById("mintProgress").innerText = progress.toFixed(2) + "%";
 
-                // Get total minted
-                const totalMinted = await readContract.getTotalMinted(TICKER);
-                // Handle big number conversion properly
-                let minted;
-                try {
-                    const mintedStr = totalMinted.toString();
-                    console.log('Raw minted value:', mintedStr);
-                    
-                    // Pattern recognition for the weird format
-                    // If we see pattern like "2000000000000009706000"
-                    // Extract the middle part which is the actual value
-                    if (mintedStr.length > 15 && mintedStr.startsWith('2000000000000')) {
-                        // Extract the actual number from position 13 to end
-                        const actualNumber = mintedStr.substring(13);
-                        minted = parseInt(actualNumber);
-                    } 
-                    // Normal case: if it's a reasonable number
-                    else if (mintedStr.length <= 10) {
-                        minted = parseInt(mintedStr);
-                    }
-                    // If it looks like wei format (18 decimals)
-                    else if (mintedStr.length > 18) {
-                        minted = Math.floor(Number(ethers.formatUnits(totalMinted, 18)));
-                    }
-                    else {
-                        minted = parseInt(mintedStr);
-                    }
-                    
-                    console.log('Parsed minted value:', minted);
-                } catch (error) {
-                    console.error('Error parsing minted amount:', error);
-                    minted = 0;
-                }
-                
-                // Get holders count
-                const holdersCount = await readContract.getHoldersCount(TICKER);
-                const holders = parseInt(holdersCount.toString());
+      if (signer) {
+        const addr = await signer.getAddress();
+        const bal = await contract.getBalance("MONS", addr);
+        document.getElementById("yourBalance").innerText = formatNumber(formatUnits(bal));
+      }
 
-                // Get mint fee
-                const mintFee = await readContract.mintFee();
-                const feeInMon = ethers.formatEther(mintFee);
+      const holders = await contract.getHolders("MONS");
+      renderHolders(holders);
+      document.getElementById("holdersCount").innerText = holders.length;
+    }
 
-                // Update UI
-                document.getElementById('minted').textContent = minted.toLocaleString();
-                document.getElementById('holders').textContent = holders.toLocaleString();
-                document.getElementById('mintFeeDisplay').textContent = `${feeInMon} MON`;
+    document.getElementById("refreshBtn").onclick = refreshData;
 
-                // Update progress bar
-                const progress = (minted / MAX_SUPPLY) * 100;
-                document.getElementById('progressFill').style.width = progress + '%';
-                document.getElementById('progressText').textContent = progress.toFixed(2) + '%';
-                
-            } catch (error) {
-                console.error('Error loading contract data:', error);
-            }
-        }
+    document.getElementById("mintBtn").onclick = async () => {
+      if (!signer) return alert("Connect wallet first");
+      const amt = document.getElementById("mintAmount").value;
+      try {
+        const tx = await contract.mint("MONS", ethers.parseUnits(amt, 18));
+        await tx.wait();
+        refreshData();
+      } catch (e) {
+        alert("Mint failed: " + e.message);
+      }
+    };
 
-        // Connect wallet
-        async function connectWallet() {
-            try {
-                if (typeof window.ethereum === 'undefined') {
-                    showAlert('Please install MetaMask!', 'error');
-                    return;
-                }
+    document.getElementById("sendBtn").onclick = async () => {
+      if (!signer) return alert("Connect wallet first");
+      const to = document.getElementById("recipient").value;
+      const amt = document.getElementById("transferAmount").value;
+      try {
+        const tx = await contract.transfer("MONS", to, ethers.parseUnits(amt, 18));
+        await tx.wait();
+        refreshData();
+      } catch (e) {
+        alert("Transfer failed: " + e.message);
+      }
+    };
 
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
-                // Switch to MONAD testnet
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x' + CHAIN_ID.toString(16) }],
-                    });
-                } catch (switchError) {
-                    if (switchError.code === 4902) {
-                        await window.ethereum.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [{
-                                chainId: '0x' + CHAIN_ID.toString(16),
-                                chainName: 'MONAD Testnet',
-                                nativeCurrency: {
-                                    name: 'ETH',
-                                    symbol: 'ETH',
-                                    decimals: 18
-                                },
-                                rpcUrls: [RPC_URL]
-                            }]
-                        });
-                    } else {
-                        throw switchError;
-                    }
-                }
-
-                provider = new ethers.BrowserProvider(window.ethereum);
-                signer = await provider.getSigner();
-                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-                userAddress = await signer.getAddress();
-
-                document.getElementById('walletConnection').style.display = 'none';
-                document.getElementById('mintSection').style.display = 'block';
-                document.getElementById('transferWalletConnection').style.display = 'none';
-                document.getElementById('transferSection').style.display = 'block';
-
-                await updateUserBalance();
-                showAlert('Wallet connected successfully!', 'success');
-
-            } catch (error) {
-                console.error('Error connecting wallet:', error);
-                showAlert('Failed to connect wallet: ' + error.message, 'error');
-            }
-        }
-
-        // Update user balance
-        async function updateUserBalance() {
-            try {
-                const balance = await contract.getBalance(userAddress, TICKER);
-                const balanceFormatted = parseInt(balance.toString()).toLocaleString();
-                document.getElementById('userBalance').textContent = `${balanceFormatted} MONS`;
-                document.getElementById('transferUserBalance').textContent = `${balanceFormatted} MONS`;
-            } catch (error) {
-                console.error('Error updating balance:', error);
-            }
-        }
-
-        // Set max transfer amount
-        function setMaxTransferAmount() {
-            // Get current balance and set as max transfer amount
-            const balanceText = document.getElementById('transferUserBalance').textContent;
-            const balance = parseInt(balanceText.replace(/[^0-9]/g, ''));
-            document.getElementById('transferAmount').value = balance;
-        }
-
-        // Transfer tokens function
-        async function transferTokens() {
-            try {
-                const recipientAddress = document.getElementById('recipientAddress').value.trim();
-                const amount = parseInt(document.getElementById('transferAmount').value);
-                
-                // Validation
-                if (!recipientAddress) {
-                    showTransferAlert('Please enter recipient address', 'error');
-                    return;
-                }
-                
-                if (!ethers.isAddress(recipientAddress)) {
-                    showTransferAlert('Please enter a valid wallet address', 'error');
-                    return;
-                }
-                
-                if (!amount || amount < 1) {
-                    showTransferAlert('Please enter a valid amount', 'error');
-                    return;
-                }
-
-                // Check user balance
-                const userBalance = await contract.getBalance(userAddress, TICKER);
-                const balance = parseInt(userBalance.toString());
-                
-                if (amount > balance) {
-                    showTransferAlert('Insufficient balance', 'error');
-                    return;
-                }
-
-                if (recipientAddress.toLowerCase() === userAddress.toLowerCase()) {
-                    showTransferAlert('Cannot transfer to yourself', 'error');
-                    return;
-                }
-
-                const transferBtn = document.getElementById('transferBtn');
-                transferBtn.disabled = true;
-                transferBtn.textContent = 'Transferring...';
-
-                const tx = await contract.transfer(recipientAddress, TICKER, amount);
-
-                showTransferAlert('Transaction submitted! Waiting for confirmation...', 'success');
-                
-                const receipt = await tx.wait();
-                
-                if (receipt.status === 1) {
-                    showTransferAlert(`Successfully transferred ${amount.toLocaleString()} MONS to ${recipientAddress.substring(0, 6)}...${recipientAddress.substring(recipientAddress.length - 4)}`, 'success');
-                    await updateUserBalance();
-                    await loadContractData();
-                    
-                    // Clear form
-                    document.getElementById('recipientAddress').value = '';
-                    document.getElementById('transferAmount').value = '';
-                } else {
-                    showTransferAlert('Transaction failed!', 'error');
-                }
-
-            } catch (error) {
-                console.error('Error transferring:', error);
-                showTransferAlert('Transfer failed: ' + (error.reason || error.message), 'error');
-            } finally {
-                const transferBtn = document.getElementById('transferBtn');
-                transferBtn.disabled = false;
-                transferBtn.textContent = 'Transfer MONS';
-            }
-        }
-
-        // Show transfer alert
-        function showTransferAlert(message, type) {
-            const alert = document.getElementById('transferAlert');
-            alert.textContent = message;
-            alert.className = `alert ${type}`;
-            alert.style.display = 'block';
-            
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 5000);
-        }
-
-        // Set max amount
-        function setMaxAmount() {
-            document.getElementById('mintAmount').value = LIMIT_PER_MINT;
-        }
-
-        // Mint function
-        async function mint() {
-            try {
-                const amount = parseInt(document.getElementById('mintAmount').value);
-                
-                if (!amount || amount < 1 || amount > LIMIT_PER_MINT) {
-                    showAlert(`Please enter a valid amount between 1 and ${LIMIT_PER_MINT}`, 'error');
-                    return;
-                }
-
-                const mintBtn = document.getElementById('mintBtn');
-                mintBtn.disabled = true;
-                mintBtn.textContent = 'Minting...';
-
-                const mintFee = await contract.mintFee();
-                
-                const tx = await contract.mint(TICKER, amount, {
-                    value: mintFee
-                });
-
-                showAlert('Transaction submitted! Waiting for confirmation...', 'success');
-                
-                const receipt = await tx.wait();
-                
-                if (receipt.status === 1) {
-                    showAlert(`Successfully minted ${amount} MONS!`, 'success');
-                    await updateUserBalance();
-                    await loadContractData();
-                } else {
-                    showAlert('Transaction failed!', 'error');
-                }
-
-            } catch (error) {
-                console.error('Error minting:', error);
-                showAlert('Minting failed: ' + (error.reason || error.message), 'error');
-            } finally {
-                const mintBtn = document.getElementById('mintBtn');
-                mintBtn.disabled = false;
-                mintBtn.textContent = 'Mint MONS';
-            }
-        }
-
-        // Show alert
-        function showAlert(message, type) {
-            const alert = document.getElementById('alert');
-            alert.textContent = message;
-            alert.className = `alert ${type}`;
-            alert.style.display = 'block';
-            
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 5000);
-        }
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+    function renderHolders(list) {
+      const tbody = document.getElementById("holdersTable");
+      tbody.innerHTML = "";
+      list.filter(h => formatUnits(h.balance) <= 21000000 && formatUnits(h.balance) <= 1000).forEach((h, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td class="p-2">${i+1}</td><td class="p-2">${h.addr}</td><td class="p-2">${formatNumber(formatUnits(h.balance))}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+  </script>
 </body>
 </html>
