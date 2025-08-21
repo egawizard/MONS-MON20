@@ -735,7 +735,7 @@
             rpcUrl: 'https://testnet-rpc.monad.xyz',
             explorerUrl: 'https://testnet-explorer.monad.xyz',
             apiKey: '$2a$10$wErxdibF02mdzCHmIXvcm.m.Dph3JLkMxOb4RB0PNUNuGrCQdFDFi',
-            binId: '68a6c59543b1c97be92414a6' 
+            binId: '68a6c6afd0ea881f405efb43'
         };
         
         // Global data structure - production ready
@@ -773,6 +773,14 @@
             isLoading = true;
             updateSyncStatus('loading');
             
+            // Set a timeout to prevent infinite loading
+            const timeout = setTimeout(() => {
+                if (isLoading) {
+                    console.error('Loading timeout - switching to fallback');
+                    handleLoadError(new Error('Connection timeout'));
+                }
+            }, 10000); // 10 second timeout
+            
             try {
                 console.log('Loading data from JSONBin...');
                 
@@ -781,16 +789,30 @@
                     headers: API_ENDPOINTS.headers
                 });
                 
+                clearTimeout(timeout);
+                
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.record && data.record.version) {
-                        globalData = { ...globalData, ...data.record };
-                        console.log('Data loaded successfully:', globalData);
+                    if (data.record) {
+                        if (data.record.version) {
+                            globalData = { ...globalData, ...data.record };
+                            console.log('Data loaded successfully:', globalData);
+                        } else {
+                            // Data exists but no version, merge carefully
+                            globalData = {
+                                ...globalData,
+                                totalMinted: data.record.totalMinted || 0,
+                                userBalances: data.record.userBalances || {},
+                                recentActivity: data.record.recentActivity || [],
+                                ...data.record,
+                                version: '1.0'
+                            };
+                        }
                     } else {
                         // Initialize new data structure
                         console.log('Initializing new data structure...');
                         globalData.lastUpdate = Date.now();
-                        await saveGlobalData(); // Save initial structure
+                        await saveGlobalData();
                     }
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -800,12 +822,46 @@
                 updateAllDisplays();
                 
                 document.getElementById('connectionStatus').innerHTML = 
-                    '<strong>Connected:</strong> Live data synchronized successfully.';
+                    'Connected: Live data synchronized successfully.';
                 document.getElementById('connectionStatus').style.borderLeftColor = '#28a745';
                 
             } catch (error) {
-                console.error('Error loading data:', error);
-                updateSyncStatus('error');
+                clearTimeout(timeout);
+                handleLoadError(error);
+            } finally {
+                isLoading = false;
+            }
+        }
+        
+        function handleLoadError(error) {
+            console.error('Error loading data:', error);
+            updateSyncStatus('error');
+            
+            document.getElementById('connectionStatus').innerHTML = 
+                'Connection Error: Using offline mode. ' + error.message;
+            document.getElementById('connectionStatus').style.borderLeftColor = '#dc3545';
+            
+            // Use fallback data
+            if (globalData.totalMinted === 0) {
+                globalData = {
+                    totalMinted: 0,
+                    totalSupply: CONFIG.totalSupply,
+                    userBalances: {},
+                    recentActivity: [],
+                    lastUpdate: Date.now(),
+                    deployedTokens: {
+                        'MONS': {
+                            deployer: 'system',
+                            maxSupply: CONFIG.totalSupply,
+                            mintLimit: CONFIG.mintLimit,
+                            deployTime: Date.now() - 86400000
+                        }
+                    },
+                    version: '1.0'
+                };
+            }
+            updateAllDisplays();
+        }
                 
                 document.getElementById('connectionStatus').innerHTML = 
                     '<strong>Connection Error:</strong> ' + error.message;
@@ -1028,11 +1084,12 @@
             document.getElementById('largestHolder').textContent = largestHolder.toLocaleString() + ' MONS';
         }
 
-        // Tab switching functionality
+        // Tab switching functionality - independent of loading state
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 const tabId = tab.dataset.tab;
                 
+                // Always allow tab switching
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 
@@ -1459,22 +1516,47 @@
 
         // Initialize everything when page loads
         window.addEventListener('load', async () => {
-            showStatus('warning', 'Loading live data...');
+            console.log('Page loaded, initializing...');
             
+            // Enable basic functionality immediately
             updateDeployPreview();
             updateMintPreview();
             
-            // Load global data from persistent storage
-            await loadGlobalData();
+            // Show loading status but don't block UI
+            showStatus('warning', 'Loading live data...');
             
-            // Auto-refresh data every 15 seconds
+            try {
+                // Load global data with timeout
+                await Promise.race([
+                    loadGlobalData(),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Loading timeout')), 8000)
+                    )
+                ]);
+                
+                showStatus('success', 'Monad Inscription Tool loaded successfully!');
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                handleLoadError(error);
+                showStatus('warning', 'Tool loaded in offline mode. Some features may be limited.');
+            }
+            
+            // Auto-refresh data every 15 seconds (only if not stuck loading)
             dataInterval = setInterval(async () => {
                 if (!isLoading) {
-                    await loadGlobalData();
+                    try {
+                        await Promise.race([
+                            loadGlobalData(),
+                            new Promise((_, reject) => 
+                                setTimeout(() => reject(new Error('Refresh timeout')), 5000)
+                            )
+                        ]);
+                    } catch (error) {
+                        console.log('Background refresh failed:', error.message);
+                        // Don't show error for background refresh failures
+                    }
                 }
             }, 15000);
-            
-            showStatus('success', 'Monad Inscription Tool loaded successfully!');
         });
 
         // Handle MetaMask account changes
@@ -1529,4 +1611,3 @@
                 clearInterval(dataInterval);
             }
         });
-
