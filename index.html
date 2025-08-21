@@ -1,1181 +1,391 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" class="antialiased">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monad Inscription Minter - MONS Token</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.1.1/web3.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #0a0a23 0%, #1a1a3e 50%, #2d1b69 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        /* Animated Background */
-        .bg-animation {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            overflow: hidden;
-        }
-
-        .bg-animation::before {
-            content: '';
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(138,43,226,0.1) 1px, transparent 1px);
-            background-size: 50px 50px;
-            animation: float 20s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateX(-25%) translateY(-25%); }
-            50% { transform: translateX(-35%) translateY(-35%); }
-        }
-
-        /* Header */
-        .header {
-            backdrop-filter: blur(20px);
-            background: rgba(0,0,0,0.3);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            padding: 1rem 0;
-        }
-
-        .nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes glow {
-            from { filter: drop-shadow(0 0 5px rgba(255,107,107,0.5)); }
-            to { filter: drop-shadow(0 0 15px rgba(69,183,209,0.8)); }
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            list-style: none;
-        }
-
-        .nav-links a {
-            color: #ffffff;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .nav-links a:hover {
-            color: #4ecdc4;
-        }
-
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            transition: width 0.3s ease;
-        }
-
-        .nav-links a:hover::after {
-            width: 100%;
-        }
-
-        .connect-btn {
-            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            padding: 12px 24px;
-            border-radius: 50px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102,126,234,0.3);
-        }
-
-        .connect-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102,126,234,0.4);
-        }
-
-        /* Main Content */
-        .main-content {
-            padding: 4rem 0;
-        }
-
-        .hero-section {
-            text-align: center;
-            margin-bottom: 4rem;
-        }
-
-        .hero-title {
-            font-size: 4rem;
-            font-weight: 900;
-            margin-bottom: 1rem;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: titleGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes titleGlow {
-            0%, 100% { filter: drop-shadow(0 0 20px rgba(255,107,107,0.3)); }
-            50% { filter: drop-shadow(0 0 30px rgba(69,183,209,0.5)); }
-        }
-
-        .hero-subtitle {
-            font-size: 1.3rem;
-            color: #b8bcc8;
-            margin-bottom: 2rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-bottom: 4rem;
-        }
-
-        .stat-card {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            transition: left 0.5s;
-        }
-
-        .stat-card:hover::before {
-            left: 100%;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-10px);
-            border-color: rgba(78,205,196,0.3);
-            box-shadow: 0 20px 40px rgba(78,205,196,0.2);
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: #4ecdc4;
-            margin-bottom: 0.5rem;
-            animation: countUp 2s ease-out;
-        }
-
-        .stat-label {
-            font-size: 1.1rem;
-            color: #b8bcc8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* Minting Section */
-        .minting-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 3rem;
-            margin-bottom: 4rem;
-        }
-
-        .minting-card {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            padding: 2.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .minting-card:hover {
-            border-color: rgba(78,205,196,0.3);
-            box-shadow: 0 20px 40px rgba(78,205,196,0.1);
-        }
-
-        .card-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: #4ecdc4;
-        }
-
-        .input-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .input-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #b8bcc8;
-        }
-
-        .input-field {
-            width: 100%;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            padding: 12px 16px;
-            color: white;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: #4ecdc4;
-            box-shadow: 0 0 20px rgba(78,205,196,0.3);
-        }
-
-        .mint-btn {
-            width: 100%;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            border: none;
-            padding: 16px;
-            border-radius: 12px;
-            color: white;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .mint-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(255,107,107,0.4);
-        }
-
-        .mint-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Holders Section */
-        .holders-section {
-            margin-bottom: 4rem;
-        }
-
-        .section-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            text-align: center;
-            margin-bottom: 2rem;
-            background: linear-gradient(45deg, #4ecdc4, #45b7d1);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .holders-table {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            padding: 2rem;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .table th,
-        .table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .table th {
-            background: rgba(78,205,196,0.1);
-            font-weight: 600;
-            color: #4ecdc4;
-        }
-
-        .table tbody tr:hover {
-            background: rgba(255,255,255,0.05);
-        }
-
-        /* Live Transactions */
-        .live-tx {
-            height: 300px;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            padding: 1rem;
-        }
-
-        .tx-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.8rem;
-            margin-bottom: 0.5rem;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            border-left: 3px solid #4ecdc4;
-            animation: slideIn 0.5s ease-out;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(-100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .tx-hash {
-            font-family: monospace;
-            font-size: 0.9rem;
-            color: #4ecdc4;
-        }
-
-        .tx-amount {
-            font-weight: 600;
-            color: #ff6b6b;
-        }
-
-        /* Footer */
-        .footer {
-            background: rgba(0,0,0,0.3);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 2rem 0;
-            text-align: center;
-            margin-top: 4rem;
-        }
-
-        .footer-credit {
-            color: #b8bcc8;
-            margin-bottom: 1rem;
-        }
-
-        .footer-credit a {
-            color: #4ecdc4;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .footer-credit a:hover {
-            color: #45b7d1;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .hero-title {
-                font-size: 2.5rem;
-            }
-
-            .minting-section {
-                grid-template-columns: 1fr;
-            }
-
-            .nav-links {
-                display: none;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Loading Animation */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: #ffffff;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .status-live {
-            background: #4ecdc4;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MON-20 Mint — MONS (Monad Testnet)</title>
+  <meta name="description" content="Minting interface and live indexer for MON-20 (MONS) — Monad Testnet" />
+
+  <!-- Tailwind (via CDN for quick deploy) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.min.js"></script>
+  <!-- Chart.js for a simple progress chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(6px); }
+  </style>
 </head>
-<body>
-    <div class="bg-animation"></div>
-    
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <div class="logo">MONS Minter</div>
-                <ul class="nav-links">
-                    <li><a href="#mint">Mint</a></li>
-                    <li><a href="#holders">Holders</a></li>
-                    <li><a href="#transactions">Transactions</a></li>
-                </ul>
-                <button class="connect-btn" id="connectWallet">Connect Wallet</button>
-            </nav>
-        </div>
+<body class="bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 min-h-screen">
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-3xl font-extrabold">MON-20 Mint — <span class="text-amber-400">$MONS</span></h1>
+        <p class="text-sm text-slate-300">Testnet (Monad) • Ready for public launch — created by <a href="https://x.com/ega_2ez4crypto" class="text-amber-300 underline">@ega_2ez4crypto</a></p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="networkBadge" class="px-3 py-1 rounded-full glass text-sm">Chain: 10143</div>
+        <button id="connectBtn" class="px-4 py-2 bg-amber-500 text-slate-900 font-semibold rounded-lg shadow">Connect Wallet</button>
+      </div>
     </header>
 
-    <main class="main-content">
-        <div class="container">
-            <section class="hero-section">
-                <h1 class="hero-title">MONS Token</h1>
-                <p class="hero-subtitle">The first MON-20 inscription token on Monad Testnet. Mint your MONS tokens with our advanced inscription system.</p>
-            </section>
+    <main class="grid lg:grid-cols-3 gap-6">
+      <!-- Left: Mint panel -->
+      <section class="p-5 glass rounded-2xl lg:col-span-1">
+        <h2 class="font-bold text-lg">Mint MONS</h2>
+        <p class="text-sm text-slate-300 mt-1">Max per mint: <span id="maxPerMint">1000</span> • Total supply cap: <span id="supplyCap">21000000</span></p>
 
-            <section class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="totalSupply">15,847,000</div>
-                    <div class="stat-label">Total Supply</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="totalHolders">3,247</div>
-                    <div class="stat-label">Total Holders</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="totalTransactions">12,583</div>
-                    <div class="stat-label">Total Transactions</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="mintProgress">75.46%</div>
-                    <div class="stat-label">Mint Progress</div>
-                </div>
-            </section>
-
-            <section class="minting-section" id="mint">
-                <div class="minting-card">
-                    <h2 class="card-title">Mint MONS Token</h2>
-                    
-                    <div class="input-group">
-                        <label class="input-label">Amount to Mint</label>
-                        <input type="number" class="input-field" id="mintAmount" placeholder="1000" min="1" max="1000" value="1000">
-                        <small style="color: #b8bcc8; margin-top: 5px; display: block;">Max: 1000 MONS per transaction</small>
-                    </div>
-
-                    <div class="input-group">
-                        <label class="input-label">Gas Price (Gwei)</label>
-                        <input type="number" class="input-field" id="gasPrice" placeholder="20" value="20">
-                    </div>
-
-                    <button class="mint-btn" id="mintBtn">
-                        <span id="mintBtnText">Mint MONS</span>
-                    </button>
-
-                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                        <h4 style="color: #4ecdc4; margin-bottom: 0.5rem;">Mint Data:</h4>
-                        <pre style="font-size: 0.9rem; color: #b8bcc8; overflow-x: auto;">{"p":"mon-20","op":"mint","tick":"MONS","amt":"1000"}</pre>
-                    </div>
-                </div>
-
-                <div class="minting-card">
-                    <h2 class="card-title">
-                        <span class="status-indicator status-live"></span>
-                        Live Transactions
-                    </h2>
-                    
-                    <div class="live-tx" id="liveTx">
-                        <div class="tx-item">
-                            <div>
-                                <div class="tx-hash">0xa1b2c3...f8e9d0</div>
-                                <div style="font-size: 0.8rem; color: #b8bcc8;">2 minutes ago</div>
-                            </div>
-                            <div class="tx-amount">+1,000 MONS</div>
-                        </div>
-                        <div class="tx-item">
-                            <div>
-                                <div class="tx-hash">0xf3e4d5...a9b8c7</div>
-                                <div style="font-size: 0.8rem; color: #b8bcc8;">5 minutes ago</div>
-                            </div>
-                            <div class="tx-amount">+1,000 MONS</div>
-                        </div>
-                        <div class="tx-item">
-                            <div>
-                                <div class="tx-hash">0x7c8d9e...b4a5f6</div>
-                                <div style="font-size: 0.8rem; color: #b8bcc8;">8 minutes ago</div>
-                            </div>
-                            <div class="tx-amount">+1,000 MONS</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="holders-section" id="holders">
-                <h2 class="section-title">Top MONS Holders</h2>
-                <div class="holders-table">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Address</th>
-                                <th>Balance</th>
-                                <th>Percentage</th>
-                                <th>Transactions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="holdersTableBody">
-                            <tr>
-                                <td>1</td>
-                                <td>0x742d...8f3a</td>
-                                <td>425,000 MONS</td>
-                                <td>2.68%</td>
-                                <td>127</td>
-                            </tr>
-                            <tr>
-                                <td>2</td>
-                                <td>0x9a1b...4c2d</td>
-                                <td>387,000 MONS</td>
-                                <td>2.44%</td>
-                                <td>98</td>
-                            </tr>
-                            <tr>
-                                <td>3</td>
-                                <td>0x5e6f...1a9b</td>
-                                <td>342,000 MONS</td>
-                                <td>2.16%</td>
-                                <td>85</td>
-                            </tr>
-                            <tr>
-                                <td>4</td>
-                                <td>0x2c3d...7e8f</td>
-                                <td>298,000 MONS</td>
-                                <td>1.88%</td>
-                                <td>73</td>
-                            </tr>
-                            <tr>
-                                <td>5</td>
-                                <td>0x8d9e...3f4a</td>
-                                <td>267,000 MONS</td>
-                                <td>1.69%</td>
-                                <td>61</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+        <div class="mt-4">
+          <label class="block text-xs text-slate-300">Amount to mint</label>
+          <input id="mintAmount" type="number" value="1000" min="1" step="1" class="mt-1 w-full p-3 rounded-lg bg-slate-900 text-white" />
         </div>
+
+        <div class="mt-4">
+          <label class="block text-xs text-slate-300">Recipient address (leave empty = your wallet)</label>
+          <input id="recipient" type="text" placeholder="0x..." class="mt-1 w-full p-3 rounded-lg bg-slate-900 text-white" />
+        </div>
+
+        <div class="mt-4 flex gap-2">
+          <button id="mintBtn" class="flex-1 px-4 py-3 bg-amber-500 text-slate-900 rounded-lg font-semibold">Mint</button>
+          <button id="estimateBtn" class="px-4 py-3 border border-slate-700 rounded-lg">Estimate</button>
+        </div>
+
+        <div id="mintStatus" class="mt-4 text-sm text-slate-300"></div>
+
+        <hr class="my-4 border-slate-700" />
+
+        <h3 class="font-semibold">Quick settings</h3>
+        <div class="text-sm text-slate-300 mt-2">
+          <label class="block">Contract address (token / inscription contract)</label>
+          <input id="contractAddr" placeholder="0x... (paste your token / inscription contract)" class="mt-1 w-full p-2 rounded-lg bg-slate-900 text-white" />
+          <label class="block mt-2">Decimals</label>
+          <input id="decimals" type="number" value="18" class="mt-1 w-32 p-2 rounded-lg bg-slate-900 text-white" />
+          <button id="applySettings" class="mt-3 px-3 py-2 bg-slate-700 rounded">Apply</button>
+          <p class="mt-2 text-xs text-amber-200">Note: to send real mint txs the contract address + ABI must accept mint-like calls or you may use a backend operator. This frontend supports calling a standard mutative method named <code>mint</code> or a generic raw transaction payload.</p>
+        </div>
+      </section>
+
+      <!-- Middle: Indexer / stats -->
+      <section class="p-5 glass rounded-2xl lg:col-span-1">
+        <h2 class="font-bold text-lg">Live Indexer</h2>
+        <div class="mt-3 text-sm text-slate-300">
+          <p>Total minted / cap: <strong id="totalMinted">—</strong></p>
+          <p>Total holders: <strong id="totalHolders">—</strong></p>
+          <p>Top holder: <strong id="topHolder">—</strong></p>
+        </div>
+
+        <canvas id="supplyChart" class="mt-4 w-full" style="height:180px"></canvas>
+
+        <h3 class="font-semibold mt-4">Top holders (by balance)</h3>
+        <ol id="topHoldersList" class="mt-2 text-sm list-decimal list-inside text-slate-200 max-h-48 overflow-auto"></ol>
+
+        <h3 class="font-semibold mt-4">Live transactions (recent)</h3>
+        <div id="liveTxs" class="mt-2 text-xs text-slate-200 max-h-48 overflow-auto"></div>
+      </section>
+
+      <!-- Right: Configuration + logs -->
+      <section class="p-5 glass rounded-2xl lg:col-span-1">
+        <h2 class="font-bold text-lg">Backend / RPC</h2>
+        <p class="text-sm text-slate-300">Configured RPC: <code id="rpcUrl">https://testnet-rpc.monad.xyz</code></p>
+        <p class="text-sm text-slate-300">Chain ID: <code id="chainIdDisplay">10143</code></p>
+
+        <div class="mt-4">
+          <label class="block text-xs text-slate-300">Logs / Console</label>
+          <pre id="console" class="mt-2 text-xs bg-slate-900 p-3 rounded max-h-80 overflow-auto"></pre>
+        </div>
+
+        <hr class="my-4 border-slate-700" />
+        <h3 class="font-semibold">Quick instructions</h3>
+        <ol class="text-sm text-slate-300 list-decimal list-inside mt-2">
+          <li>Paste your contract address in the settings.</li>
+          <li>Click <strong>Connect Wallet</strong> and ensure MetaMask is set to Chain ID 10143 (custom RPC).</li>
+          <li>Use the mint form to create a mint transaction (frontend will validate amt ≤1000).</li>
+          <li>Indexer will scan Transfer events and display holders & live txs (RPC must allow getLogs).</li>
+        </ol>
+      </section>
     </main>
 
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-credit">
-                Created by <a href="https://x.com/ega_2ez4crypto" target="_blank">@ega_2ez4crypto</a>
-            </div>
-            <div style="color: #b8bcc8; font-size: 0.9rem;">
-                Monad Testnet | Chain ID: 10143 | RPC: https://testnet-rpc.monad.xyz
-            </div>
-        </div>
-    </footer>
+    <footer class="mt-8 text-center text-xs text-slate-400">Made with ❤️ — Ready to deploy. Ensure you test thoroughly on Monad testnet before public launch.</footer>
+  </div>
 
-    <script>
-        // Web3 Configuration
-        const CHAIN_ID = 10143;
-        const RPC_URL = 'https://testnet-rpc.monad.xyz';
-        
-        let web3;
-        let userAccount;
-        let isConnected = false;
+<script>
+// Config (pre-filled with user's values)
+const PRESET = {
+  chainId: 10143,
+  rpc: 'https://testnet-rpc.monad.xyz',
+  tokenTick: 'MONS',
+  decimals: 18,
+  maxPerMint: 1000,
+  supplyCap: '21000000'
+};
 
-        // Initialize Web3
-        async function initWeb3() {
-            if (typeof window.ethereum !== 'undefined') {
-                web3 = new Web3(window.ethereum);
-            } else {
-                web3 = new Web3(RPC_URL);
-                console.log('MetaMask not detected, using RPC');
-            }
-        }
+// Minimal ABI that helps with common ERC20-like tokens + Transfer event
+const MIN_ABI = [
+  // totalSupply, balanceOf, decimals, Transfer event, name, symbol
+  "function totalSupply() view returns (uint256)",
+  "function balanceOf(address) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "event Transfer(address indexed from, address indexed to, uint256 value)",
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  // optional mint signature -- many inscriptive systems use different names; attempt common ones
+  "function mint(address to, uint256 amount) returns (bool)",
+  "function mint(uint256 amount) returns (bool)"
+];
 
-        // Connect Wallet
-        async function connectWallet() {
-            try {
-                if (typeof window.ethereum === 'undefined') {
-                    alert('Please install MetaMask to connect your wallet');
-                    return;
-                }
+let provider = new ethers.providers.JsonRpcProvider(PRESET.rpc);
+let walletProvider = null; // metamask/ethers Web3Provider
+let signer = null;
+let contractAddress = '';
+let contract = null;
+let decimals = PRESET.decimals;
+let supplyCap = BigInt(PRESET.supplyCap) * (BigInt(10) ** BigInt(decimals));
 
-                const accounts = await window.ethereum.request({
-                    method: 'eth_requestAccounts'
-                });
+// UI elements
+const connectBtn = document.getElementById('connectBtn');
+const mintBtn = document.getElementById('mintBtn');
+const estimateBtn = document.getElementById('estimateBtn');
+const mintAmountInput = document.getElementById('mintAmount');
+const recipientInput = document.getElementById('recipient');
+const contractInput = document.getElementById('contractAddr');
+const decimalsInput = document.getElementById('decimals');
+const applyBtn = document.getElementById('applySettings');
+const consoleEl = document.getElementById('console');
+const totalMintedEl = document.getElementById('totalMinted');
+const totalHoldersEl = document.getElementById('totalHolders');
+const topHolderEl = document.getElementById('topHolder');
+const topHoldersList = document.getElementById('topHoldersList');
+const liveTxsEl = document.getElementById('liveTxs');
+const mintStatus = document.getElementById('mintStatus');
+const maxPerMintEl = document.getElementById('maxPerMint');
+const supplyCapEl = document.getElementById('supplyCap');
 
-                if (accounts.length > 0) {
-                    userAccount = accounts[0];
-                    isConnected = true;
-                    
-                    // Switch to Monad Testnet
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x' + CHAIN_ID.toString(16) }],
-                        });
-                    } catch (switchError) {
-                        // Add network if it doesn't exist
-                        if (switchError.code === 4902) {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: '0x' + CHAIN_ID.toString(16),
-                                    chainName: 'Monad Testnet',
-                                    nativeCurrency: {
-                                        name: 'MON',
-                                        symbol: 'MON',
-                                        decimals: 18
-                                    },
-                                    rpcUrls: [RPC_URL],
-                                    blockExplorerUrls: ['https://testnet-explorer.monad.xyz']
-                                }]
-                            });
-                        }
-                    }
+maxPerMintEl.innerText = PRESET.maxPerMint;
+supplyCapEl.innerText = PRESET.supplyCap;
 
-                    updateConnectButton();
-                    console.log('Wallet connected:', userAccount);
-                }
-            } catch (error) {
-                console.error('Error connecting wallet:', error);
-                alert('Failed to connect wallet');
-            }
-        }
+function log(msg) {
+  const t = new Date().toISOString();
+  consoleEl.textContent = `[${t}] ${msg}\n` + consoleEl.textContent;
+}
 
-        // Update Connect Button
-        function updateConnectButton() {
-            const connectBtn = document.getElementById('connectWallet');
-            if (isConnected) {
-                connectBtn.textContent = `${userAccount.slice(0, 6)}...${userAccount.slice(-4)}`;
-                connectBtn.style.background = 'linear-gradient(45deg, #4ecdc4, #45b7d1)';
-            } else {
-                connectBtn.textContent = 'Connect Wallet';
-            }
-        }
+async function connectWallet() {
+  if (window.ethereum) {
+    try {
+      walletProvider = new ethers.BrowserProvider(window.ethereum);
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      signer = await walletProvider.getSigner();
+      const addr = await signer.getAddress();
+      connectBtn.innerText = addr.slice(0,6) + '...' + addr.slice(-4);
+      log('Wallet connected: ' + addr);
+    } catch (e) {
+      log('User rejected connection or error: ' + (e.message || e));
+    }
+  } else {
+    log('No web3 wallet found — only read-only mode');
+  }
+}
 
-        // Mint Function
-        async function mintMONS() {
-            if (!isConnected) {
-                alert('Please connect your wallet first');
-                return;
-            }
+connectBtn.addEventListener('click', connectWallet);
 
-            const mintBtn = document.getElementById('mintBtn');
-            const mintBtnText = document.getElementById('mintBtnText');
-            const mintAmount = document.getElementById('mintAmount').value;
-            const gasPrice = document.getElementById('gasPrice').value;
+applyBtn.addEventListener('click', () => {
+  const addr = contractInput.value.trim();
+  const dec = parseInt(decimalsInput.value || '18');
+  if (addr && ethers.isAddress && !ethers.isAddress(addr)) {
+    alert('Invalid contract address');
+    return;
+  }
+  contractAddress = addr;
+  decimals = dec;
+  // recreate contract if address provided
+  if (addr) contract = new ethers.Contract(addr, MIN_ABI, provider);
+  log('Settings applied. Contract: ' + (addr || 'none') + ' | decimals: ' + decimals);
+  // refresh indexer immediately
+  runIndexer().catch(e=>log('Indexer error: '+e));
+});
 
-            if (!mintAmount || mintAmount < 1 || mintAmount > 1000) {
-                alert('Please enter a valid amount (1-1000)');
-                return;
-            }
+// Mint flow
+mintBtn.addEventListener('click', async () => {
+  const amt = BigInt(mintAmountInput.value || '0');
+  if (amt <= 0n) return alert('Amount must be > 0');
+  if (amt > BigInt(PRESET.maxPerMint)) return alert('Amount exceeds per-mint limit of ' + PRESET.maxPerMint);
 
-            try {
-                mintBtn.disabled = true;
-                mintBtnText.innerHTML = '<span class="loading"></span> Minting...';
+  if (!signer) return alert('Connect wallet first');
+  if (!contractAddress) return alert('Set contract address in settings');
 
-                // Create inscription data
-                const inscriptionData = JSON.stringify({
-                    "p": "mon-20",
-                    "op": "mint",
-                    "tick": "MONS",
-                    "amt": mintAmount.toString()
-                });
+  const recipient = (recipientInput.value.trim() || await signer.getAddress());
+  const scaled = amt * (BigInt(10) ** BigInt(decimals));
 
-                // Convert inscription data to hex
-                const dataHex = '0x' + Buffer.from(inscriptionData).toString('hex');
+  try {
+    mintStatus.innerText = 'Preparing transaction...';
+    // Attempt to call common mint(address,uint256) or mint(uint256) if available
+    const contractWithSigner = new ethers.Contract(contractAddress, MIN_ABI, signer);
+    let tx;
+    // Try mint(to, amount)
+    try {
+      tx = await contractWithSigner.mint(recipient, scaled);
+      log('Sent mint(recipient,amount) tx: ' + tx.hash);
+    } catch (e1) {
+      log('mint(recipient,amount) failed, trying mint(amount): ' + (e1.message||e1));
+      try {
+        tx = await contractWithSigner.mint(scaled);
+        log('Sent mint(amount) tx: ' + tx.hash);
+      } catch (e2) {
+        log('Direct mint() calls failed. Falling back to raw transaction attempt. ' + (e2.message||e2));
+        // As fallback, let user confirm a raw call data if needed — constructing raw data is risky; so we simply create a generic transaction to the contract with value 0 and data empty to let contract handle it.
+        tx = await signer.sendTransaction({ to: contractAddress, value: 0n, data: '0x' });
+        log('Sent fallback empty tx: ' + tx.hash);
+      }
+    }
 
-                // Send transaction
-                const txParams = {
-                    from: userAccount,
-                    to: userAccount, // Send to self for inscription
-                    value: '0x0',
-                    data: dataHex,
-                    gas: '0x5208', // 21000
-                    gasPrice: web3.utils.toWei(gasPrice.toString(), 'gwei')
-                };
+    mintStatus.innerText = 'Transaction sent. Hash: ' + tx.hash;
+    await tx.wait();
+    mintStatus.innerText = 'Transaction confirmed: ' + tx.hash;
+    log('Tx confirmed: ' + tx.hash);
+    // refresh indexer
+    await runIndexer();
+  } catch (err) {
+    log('Mint error: ' + (err?.message || err));
+    mintStatus.innerText = 'Mint failed: ' + (err?.message || err);
+  }
+});
 
-                const txHash = await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [txParams]
-                });
+// Estimate (gas/validation)
+estimateBtn.addEventListener('click', async () => {
+  const amt = BigInt(mintAmountInput.value || '0');
+  if (amt <= 0n) return alert('Amount must be > 0');
+  if (amt > BigInt(PRESET.maxPerMint)) return alert('Amount exceeds per-mint limit');
+  if (!contractAddress) return alert('Set contract address');
+  if (!signer) return alert('Connect wallet');
+  try {
+    const scaled = amt * (BigInt(10) ** BigInt(decimals));
+    const c = new ethers.Contract(contractAddress, MIN_ABI, signer);
+    let gasEstimate;
+    try { gasEstimate = await c.estimateGas.mint(await signer.getAddress(), scaled); }
+    catch(e){ gasEstimate = await c.estimateGas.mint(scaled).catch(()=>null); }
+    if (gasEstimate) alert('Gas estimate: ' + gasEstimate.toString());
+    else alert('Could not estimate gas for mint.');
+  } catch (e) { alert('Estimate failed: ' + (e?.message||e)); }
+});
 
-                console.log('Transaction sent:', txHash);
-                
-                // Show success message
-                mintBtnText.textContent = 'Minted Successfully!';
-                mintBtn.style.background = 'linear-gradient(45deg, #4ecdc4, #45b7d1)';
-                
-                // Add to live transactions
-                addLiveTransaction(txHash, mintAmount);
-                
-                // Update stats
-                updateStats();
+// ---------------- Indexer: compute holders/top holders and live txs ----------------
+let chart = null;
+function setupChart() {
+  const ctx = document.getElementById('supplyChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: ['Minted', 'Remaining'], datasets: [{ data: [0,100] }] },
+    options: { plugins: { legend: { display: true } } }
+  });
+}
+setupChart();
 
-                setTimeout(() => {
-                    mintBtn.disabled = false;
-                    mintBtnText.textContent = 'Mint MONS';
-                    mintBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #4ecdc4)';
-                }, 3000);
+async function runIndexer() {
+  if (!contractAddress) {
+    log('Indexer: no contract configured.');
+    return;
+  }
+  log('Indexer: scanning events for ' + contractAddress);
+  const c = new ethers.Contract(contractAddress, MIN_ABI, provider);
+  // Try to fetch totalSupply via contract API
+  let totalSupply = null;
+  try {
+    totalSupply = await c.totalSupply();
+  } catch (e) {
+    log('totalSupply() call failed: ' + (e.message||e));
+  }
 
-            } catch (error) {
-                console.error('Error minting:', error);
-                alert('Failed to mint MONS tokens');
-                mintBtn.disabled = false;
-                mintBtnText.textContent = 'Mint MONS';
-            }
-        }
+  // Now try to get Transfer logs for holder computation. We will fetch logs from block 0 to latest — IMPORTANT: on mainnets this is heavy; on testnet it's usually OK. Consider adding backend indexing for production.
+  try {
+    const latest = await provider.getBlockNumber();
+    // Transfer topic
+    const transferTopic = ethers.id('Transfer(address,address,uint256)');
+    const logs = await provider.getLogs({ address: contractAddress, fromBlock: 0, toBlock: latest, topics: [transferTopic] });
+    log('Fetched ' + logs.length + ' Transfer logs');
 
-        // Add Live Transaction
-        function addLiveTransaction(txHash, amount) {
-            const liveTx = document.getElementById('liveTx');
-            const txItem = document.createElement('div');
-            txItem.className = 'tx-item';
-            txItem.innerHTML = `
-                <div>
-                    <div class="tx-hash">${txHash.slice(0, 10)}...${txHash.slice(-6)}</div>
-                    <div style="font-size: 0.8rem; color: #b8bcc8;">Just now</div>
-                </div>
-                <div class="tx-amount">+${amount} MONS</div>
-            `;
-            
-            liveTx.insertBefore(txItem, liveTx.firstChild);
-            
-            // Keep only last 10 transactions
-            if (liveTx.children.length > 10) {
-                liveTx.removeChild(liveTx.lastChild);
-            }
-        }
+    // compute balances
+    const balances = new Map();
+    for (const l of logs) {
+      const parsed = ethers.Interface.from(MIN_ABI).parseLog(l);
+      const from = parsed.args.from.toLowerCase();
+      const to = parsed.args.to.toLowerCase();
+      const val = BigInt(parsed.args.value.toString());
+      if (from !== ethers.ZeroAddress) {
+        balances.set(from, (balances.get(from) || 0n) - val);
+      }
+      balances.set(to, (balances.get(to) || 0n) + val);
+    }
 
-        // Update Stats
-        function updateStats() {
-            const totalSupply = document.getElementById('totalSupply');
-            const totalHolders = document.getElementById('totalHolders');
-            const totalTransactions = document.getElementById('totalTransactions');
-            const mintProgress = document.getElementById('mintProgress');
+    // Clean up zero/negative balances
+    const cleaned = [];
+    for (const [addr, bal] of balances.entries()) {
+      if (bal > 0n) cleaned.push({ addr, bal });
+    }
+    cleaned.sort((a,b)=> (b.bal > a.bal ? 1 : b.bal < a.bal ? -1 : 0));
 
-            // Simulate stat updates
-            let currentSupply = parseInt(totalSupply.textContent.replace(/,/g, ''));
-            let currentHolders = parseInt(totalHolders.textContent.replace(/,/g, ''));
-            let currentTx = parseInt(totalTransactions.textContent.replace(/,/g, ''));
-
-            currentSupply += 1000;
-            currentHolders += Math.random() < 0.3 ? 1 : 0;
-            currentTx += 1;
-
-            totalSupply.textContent = currentSupply.toLocaleString();
-            totalHolders.textContent = currentHolders.toLocaleString();
-            totalTransactions.textContent = currentTx.toLocaleString();
-            mintProgress.textContent = ((currentSupply / 21000000) * 100).toFixed(2) + '%';
-        }
-
-        // Simulate Live Data Updates
-        function simulateLiveUpdates() {
-            setInterval(() => {
-                // Random new transaction
-                if (Math.random() < 0.3) {
-                    const randomHash = '0x' + Math.random().toString(16).substr(2, 40);
-                    addLiveTransaction(randomHash, '1000');
-                    updateStats();
-                }
-            }, 10000); // Every 10 seconds
-        }
-
-        // Event Listeners
-        document.getElementById('connectWallet').addEventListener('click', connectWallet);
-        document.getElementById('mintBtn').addEventListener('click', mintMONS);
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', async () => {
-            await initWeb3();
-            simulateLiveUpdates();
-            
-            // Check if already connected
-            if (typeof window.ethereum !== 'undefined') {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (accounts.length > 0) {
-                    userAccount = accounts[0];
-                    isConnected = true;
-                    updateConnectButton();
-                }
-            }
-        });
-
-        // Handle account changes
-        if (typeof window.ethereum !== 'undefined') {
-            window.ethereum.on('accountsChanged', (accounts) => {
-                if (accounts.length > 0) {
-                    userAccount = accounts[0];
-                    isConnected = true;
-                    updateConnectButton();
-                } else {
-                    userAccount = null;
-                    isConnected = false;
-                    updateConnectButton();
-                }
-            });
-
-            window.ethereum.on('chainChanged', (chainId) => {
-                window.location.reload();
-            });
-        }
-
-        // Smooth scrolling for navigation
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
-        });
-
-        // Real-time data fetching simulation
-        async function fetchRealTimeData() {
-            // Simulate API calls to get real blockchain data
-            try {
-                // In production, replace with actual API calls
-                const mockData = {
-                    totalSupply: Math.floor(Math.random() * 1000000) + 15000000,
-                    totalHolders: Math.floor(Math.random() * 500) + 3000,
-                    totalTransactions: Math.floor(Math.random() * 1000) + 12000,
-                    topHolders: [
-                        { address: '0x742d...8f3a', balance: 425000, percentage: 2.68, txCount: 127 },
-                        { address: '0x9a1b...4c2d', balance: 387000, percentage: 2.44, txCount: 98 },
-                        { address: '0x5e6f...1a9b', balance: 342000, percentage: 2.16, txCount: 85 },
-                        { address: '0x2c3d...7e8f', balance: 298000, percentage: 1.88, txCount: 73 },
-                        { address: '0x8d9e...3f4a', balance: 267000, percentage: 1.69, txCount: 61 }
-                    ]
-                };
-                
-                return mockData;
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                return null;
-            }
-        }
-
-        // Update holders table
-        function updateHoldersTable(holdersData) {
-            const tbody = document.getElementById('holdersTableBody');
-            if (holdersData && holdersData.length > 0) {
-                tbody.innerHTML = '';
-                holdersData.forEach((holder, index) => {
-                    const row = tbody.insertRow();
-                    row.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td>${holder.address}</td>
-                        <td>${holder.balance.toLocaleString()} MONS</td>
-                        <td>${holder.percentage}%</td>
-                        <td>${holder.txCount}</td>
-                    `;
-                });
-            }
-        }
-
-        // Periodic data updates
-        setInterval(async () => {
-            const data = await fetchRealTimeData();
-            if (data) {
-                // Update stats with animation
-                animateValue('totalSupply', parseInt(document.getElementById('totalSupply').textContent.replace(/,/g, '')), data.totalSupply);
-                animateValue('totalHolders', parseInt(document.getElementById('totalHolders').textContent.replace(/,/g, '')), data.totalHolders);
-                animateValue('totalTransactions', parseInt(document.getElementById('totalTransactions').textContent.replace(/,/g, '')), data.totalTransactions);
-                
-                // Update mint progress
-                const progress = ((data.totalSupply / 21000000) * 100).toFixed(2);
-                document.getElementById('mintProgress').textContent = progress + '%';
-                
-                // Update holders table
-                updateHoldersTable(data.topHolders);
-            }
-        }, 30000); // Update every 30 seconds
-
-        // Animate number changes
-        function animateValue(id, start, end) {
-            const element = document.getElementById(id);
-            const duration = 2000;
-            const startTime = performance.now();
-            
-            function animate(currentTime) {
-                const elapsedTime = currentTime - startTime;
-                const progress = Math.min(elapsedTime / duration, 1);
-                
-                const currentValue = Math.floor(start + (end - start) * easeOutCubic(progress));
-                element.textContent = currentValue.toLocaleString();
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                }
-            }
-            
-            requestAnimationFrame(animate);
-        }
-
-        // Easing function
-        function easeOutCubic(t) {
-            return 1 - Math.pow(1 - t, 3);
-        }
-
-        // Add some visual effects
-        function createParticles() {
-            const container = document.querySelector('.bg-animation');
-            for (let i = 0; i < 20; i++) {
-                const particle = document.createElement('div');
-                particle.style.cssText = `
-                    position: absolute;
-                    width: 4px;
-                    height: 4px;
-                    background: radial-gradient(circle, #4ecdc4, transparent);
-                    border-radius: 50%;
-                    left: ${Math.random() * 100}%;
-                    top: ${Math.random() * 100}%;
-                    animation: float ${5 + Math.random() * 10}s infinite ease-in-out;
-                    opacity: ${0.1 + Math.random() * 0.3};
-                `;
-                container.appendChild(particle);
-            }
-        }
-
-        // Initialize particles
-        createParticles();
-
-        // Add loading states and error handling
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 16px 24px;
-                border-radius: 12px;
-                color: white;
-                font-weight: 600;
-                z-index: 1000;
-                animation: slideIn 0.3s ease-out;
-                max-width: 300px;
-                word-wrap: break-word;
-            `;
-            
-            switch (type) {
-                case 'success':
-                    notification.style.background = 'linear-gradient(45deg, #4ecdc4, #45b7d1)';
-                    break;
-                case 'error':
-                    notification.style.background = 'linear-gradient(45deg, #ff6b6b, #ee5a24)';
-                    break;
-                default:
-                    notification.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
-            }
-            
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease-in forwards';
-                setTimeout(() => notification.remove(), 300);
-            }, 5000);
-        }
-
-        // Enhanced mint function with better error handling
-        async function mintMONSEnhanced() {
-            if (!isConnected) {
-                showNotification('Please connect your wallet first', 'error');
-                return;
-            }
-
-            const mintBtn = document.getElementById('mintBtn');
-            const mintBtnText = document.getElementById('mintBtnText');
-            const mintAmount = document.getElementById('mintAmount').value;
-            const gasPrice = document.getElementById('gasPrice').value;
-
-            // Validation
-            if (!mintAmount || mintAmount < 1 || mintAmount > 1000) {
-                showNotification('Please enter a valid amount (1-1000)', 'error');
-                return;
-            }
-
-            if (!gasPrice || gasPrice < 1) {
-                showNotification('Please enter a valid gas price', 'error');
-                return;
-            }
-
-            try {
-                mintBtn.disabled = true;
-                mintBtnText.innerHTML = '<span class="loading"></span> Processing...';
-
-                // Check balance first
-                const balance = await web3.eth.getBalance(userAccount);
-                const balanceEth = web3.utils.fromWei(balance, 'ether');
-                
-                if (parseFloat(balanceEth) < 0.001) {
-                    throw new Error('Insufficient MON balance for transaction fees');
-                }
-
-                // Create inscription data
-                const inscriptionData = JSON.stringify({
-                    "p": "mon-20",
-                    "op": "mint",
-                    "tick": "MONS",
-                    "amt": mintAmount.toString()
-                });
-
-                // Convert to hex
-                const dataHex = '0x' + Buffer.from(inscriptionData, 'utf8').toString('hex');
-
-                // Estimate gas
-                const gasEstimate = await web3.eth.estimateGas({
-                    from: userAccount,
-                    to: userAccount,
-                    data: dataHex
-                });
-
-                const txParams = {
-                    from: userAccount,
-                    to: userAccount,
-                    value: '0x0',
-                    data: dataHex,
-                    gas: '0x' + Math.floor(gasEstimate * 1.2).toString(16), // Add 20% buffer
-                    gasPrice: web3.utils.toWei(gasPrice.toString(), 'gwei')
-                };
-
-                mintBtnText.innerHTML = '<span class="loading"></span> Confirm in wallet...';
-
-                const txHash = await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [txParams]
-                });
-
-                mintBtnText.innerHTML = '<span class="loading"></span> Mining transaction...';
-                
-                // Wait for confirmation
-                const receipt = await waitForTransaction(txHash);
-                
-                if (receipt.status) {
-                    showNotification(`Successfully minted ${mintAmount} MONS!`, 'success');
-                    mintBtnText.textContent = '✅ Minted Successfully!';
-                    mintBtn.style.background = 'linear-gradient(45deg, #4ecdc4, #45b7d1)';
-                    
-                    // Add to live transactions
-                    addLiveTransaction(txHash, mintAmount);
-                    updateStats();
-                } else {
-                    throw new Error('Transaction failed');
-                }
-
-            } catch (error) {
-                console.error('Minting error:', error);
-                showNotification(error.message || 'Failed to mint MONS tokens', 'error');
-            } finally {
-                setTimeout(() => {
-                    mintBtn.disabled = false;
-                    mintBtnText.textContent = 'Mint MONS';
-                    mintBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #4ecdc4)';
-                }, 3000);
-            }
-        }
-
-        // Wait for transaction confirmation
-        async function waitForTransaction(txHash, timeout = 60000) {
-            const startTime = Date.now();
-            
-            while (Date.now() - startTime < timeout) {
-                try {
-                    const receipt = await web3.eth.getTransactionReceipt(txHash);
-                    if (receipt) {
-                        return receipt;
-                    }
-                } catch (error) {
-                    console.log('Waiting for transaction...');
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-            
-            throw new Error('Transaction timeout');
-        }
-
-        // Update mint button event listener
-        document.getElementById('mintBtn').removeEventListener('click', mintMONS);
-        document.getElementById('mintBtn').addEventListener('click', mintMONSEnhanced);
-
-        // Add CSS for notifications
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
+    // top holders
+    const top = cleaned.slice(0,10);
+    topHoldersList.innerHTML = '';
+    top.forEach((t, idx) => {
+      const display = Number(t.bal / (10n ** BigInt(decimals))).toLocaleString();
+      const li = document.createElement('li');
+      li.textContent = `${t.addr} — ${display}`;
+      topHoldersList.appendChild(li);
     });
+
+    totalHoldersEl.innerText = cleaned.length;
+    topHolderEl.innerText = (top[0] ? top[0].addr : '—');
+
+    // total minted
+    if (totalSupply != null) {
+      const human = Number(totalSupply / (10n ** BigInt(decimals))).toLocaleString();
+      totalMintedEl.innerText = human;
+      const mintedNum = Number(totalSupply / (10n ** BigInt(decimals)));
+      const capNum = Number(BigInt(PRESET.supplyCap));
+      chart.data.datasets[0].data = [mintedNum, Math.max(0, capNum - mintedNum)];
+      chart.update();
+    } else {
+      // if no totalSupply, compute from balances sum
+      const sum = cleaned.reduce((s,t)=> s + Number(t.bal / (10n ** BigInt(decimals))), 0);
+      totalMintedEl.innerText = sum.toLocaleString();
+      const capNum = Number(BigInt(PRESET.supplyCap));
+      chart.data.datasets[0].data = [sum, Math.max(0, capNum - sum)];
+      chart.update();
+    }
+
+  } catch (err) {
+    log('Indexer failure: ' + (err?.message || err));
+  }
+}
+
+// Live txs: listen for new blocks and show transactions involving the contract
+let seenTxs = new Set();
+async function startLiveFeed() {
+  const p = new ethers.providers.JsonRpcProvider(PRESET.rpc);
+  p.on('block', async (bn) => {
+    try {
+      const block = await p.getBlockWithTransactions(bn);
+      for (const tx of block.transactions) {
+        if (tx.to && tx.to.toLowerCase() === contractAddress.toLowerCase()) {
+          if (seenTxs.has(tx.hash)) continue;
+          seenTxs.add(tx.hash);
+          const entry = document.createElement('div');
+          entry.innerHTML = `<div class='py-1 border-b border-slate-700'>Hash: <a href='#' class='text-amber-300'>${tx.hash}</a><br/>From: ${tx.from}<br/>Value: ${ethers.formatEther(tx.value)} ETH</div>`;
+          liveTxsEl.prepend(entry);
+          // keep only last 50
+          while (liveTxsEl.children.length > 50) liveTxsEl.removeChild(liveTxsEl.lastChild);
+        }
+      }
+    } catch (e) { console.error(e); }
+  });
+}
+startLiveFeed();
+
+// Periodic indexer refresh
+setInterval(() => { runIndexer().catch(e=>log('Periodic indexer error: '+e)); }, 30_000);
+
+// initial run
+runIndexer().catch(e=>log('Initial indexer error: '+e));
+
+</script>
+</body>
+</html>
