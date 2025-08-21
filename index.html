@@ -340,12 +340,16 @@
                     <div class="form-group">
                         <label for="mintAmount">Amount to Mint</label>
                         <input type="number" id="mintAmount" placeholder="1000" min="1" value="1000" max="1000">
+                        <div style="font-size: 12px; color: #dc3545; margin-top: 5px;">
+                            ⚠️ <strong>Important:</strong> Amounts above 1,000 MONS will be marked as INVALID by the indexer
+                        </div>
                     </div>
                 </div>
 
                 <div class="status warning">
                     <strong>⚠️ Current Progress:</strong> 2,000 / 21,000,000 MONS minted (0.01% complete)
                     <br><strong>Remaining:</strong> 20,998,000 MONS available for minting
+                    <br><strong>⚠️ Mint Limit:</strong> Maximum 1,000 MONS per transaction (amounts above will be INVALID)
                 </div>
 
                 <div class="token-preview">
@@ -389,9 +393,12 @@
 
                 <div class="result-area">
                     <h3>🔥 Quick Mint Actions</h3>
-                    <button class="btn" onclick="quickMint(1000)" style="margin-bottom: 10px;">⚡ Quick Mint 1,000 MONS</button>
+                    <button class="btn" onclick="quickMint(1000)" style="margin-bottom: 10px;">⚡ Quick Mint 1,000 MONS (MAX)</button>
                     <button class="btn btn-secondary" onclick="quickMint(500)" style="margin-bottom: 10px;">⚡ Quick Mint 500 MONS</button>
                     <button class="btn btn-secondary" onclick="quickMint(100)">⚡ Quick Mint 100 MONS</button>
+                    <div style="margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 5px; font-size: 12px; color: #856404;">
+                        ⚠️ <strong>Note:</strong> All amounts above 1,000 MONS will be automatically rejected as INVALID inscriptions
+                    </div>
                 </div>
 
                 <div class="result-area">
@@ -449,11 +456,19 @@
                 <button class="btn btn-secondary" onclick="addMonadNetwork()">⚙️ Add Monad Testnet to MetaMask</button>
 
                 <div class="result-area">
-                    <h3>ℹ️ Instructions</h3>
+                    <h3>ℹ️ Instructions & Important Notes</h3>
+                    <div style="background: #f8d7da; padding: 15px; border-radius: 8px; border-left: 4px solid #dc3545; margin-bottom: 15px;">
+                        <h4 style="color: #721c24; margin-bottom: 10px;">⚠️ CRITICAL: Mint Limit Validation</h4>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>• Maximum mint per tx:</strong> 1,000 MONS</p>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>• Invalid amounts:</strong> 1,001+ MONS will be rejected</p>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>• Blockchain status:</strong> Transaction will succeed but inscription will be INVALID</p>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>• Result:</strong> You lose gas fees but get 0 MONS tokens</p>
+                    </div>
                     <p>1. Make sure you have MetaMask installed</p>
                     <p>2. Add Monad Testnet network to MetaMask</p>
                     <p>3. Get testnet MON tokens from the faucet</p>
                     <p>4. Connect your wallet to start deploying and minting tokens</p>
+                    <p>5. <strong>Always mint ≤ 1,000 MONS to ensure validity</strong></p>
                 </div>
             </div>
         </div>
@@ -617,6 +632,19 @@
                 return;
             }
             
+            const amountNum = parseInt(amt);
+            
+            // Validasi limit mint
+            if (amountNum > 1000) {
+                showStatus('error', '❌ INVALID: Amount exceeds limit! Maximum 1,000 MONS per mint. This inscription will be rejected by indexer.');
+                return;
+            }
+            
+            if (amountNum <= 0) {
+                showStatus('error', 'Amount must be greater than 0');
+                return;
+            }
+            
             const inscription = {
                 "p": "MON-20",
                 "op": "mint",
@@ -626,7 +654,12 @@
             
             document.getElementById('mintInscriptionData').textContent = JSON.stringify(inscription, null, 2);
             document.getElementById('mintResult').style.display = 'block';
-            showStatus('success', 'Mint inscription generated successfully!');
+            
+            if (amountNum === 1000) {
+                showStatus('success', '✅ Valid mint inscription generated! (Maximum amount)');
+            } else {
+                showStatus('success', `✅ Valid mint inscription generated! (${amountNum} MONS)`);
+            }
         }
 
         async function sendDeployTransaction() {
@@ -655,6 +688,12 @@
                 return;
             }
 
+            // Validasi limit mint untuk quick mint juga
+            if (amount > 1000) {
+                showStatus('error', `❌ INVALID: ${amount} MONS exceeds limit! Maximum 1,000 MONS per mint.`);
+                return;
+            }
+
             const inscription = {
                 "p": "MON-20",
                 "op": "mint",
@@ -663,6 +702,7 @@
             };
 
             const inscriptionData = JSON.stringify(inscription, null, 2);
+            showStatus('success', `🚀 Sending valid mint for ${amount} MONS...`);
             sendTransaction(inscriptionData, `Quick Mint ${amount}`);
         }
 
