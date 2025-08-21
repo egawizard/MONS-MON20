@@ -1,365 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <title>MONAD MON-20 • $MONS Explorer & Minter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme:{ extend:{
-        colors:{ bg:"#070a12", card:"#0f1422", accent:"#4ecdc4", accent2:"#45b7d1", ink:"#eaf2ff", mute:"#9aa3b2" },
-        boxShadow:{ glow:"0 10px 30px rgba(78,205,196,.25)" }
-      }}
-    }
-  </script>
+  <meta charset="UTF-8">
+  <title>MON-20 Explorer & Minter</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3modal@1.9.12/dist/index.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    .grad{background:
-      radial-gradient(1200px 600px at 10% -10%, rgba(78,205,196,.22), transparent),
-      radial-gradient(1000px 600px at 110% 10%, rgba(69,183,209,.18), transparent);}
-    .glass{backdrop-filter: blur(8px); background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06);}
-    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+    body { background: #0f172a; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+    .card { background: #1e293b; border-radius: 1rem; padding: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,.4); }
+    .btn { background: linear-gradient(90deg, #6366f1, #06b6d4); padding: 0.7rem 1.5rem; border-radius: 0.7rem; font-weight: bold; color: white; cursor: pointer; transition: 0.3s; }
+    .btn:hover { opacity: 0.85; }
   </style>
 </head>
-<body class="bg-bg text-ink grad min-h-screen">
-  <div class="max-w-7xl mx-auto px-5 py-8">
-    <!-- Header -->
-    <header class="flex flex-col lg:flex-row items-center justify-between gap-4 mb-6">
-      <div>
-        <h1 class="text-3xl font-black tracking-tight">MONAD <span class="text-accent">$MONS</span> • MON-20</h1>
-        <p class="text-mute">The first inscription token on Monad Testnet — fully on-chain (etherscription-style).</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <button id="connectBtn" class="px-4 py-2 font-bold rounded-xl bg-accent text-black hover:opacity-90 shadow-glow">Connect Wallet</button>
-        <button id="mintBtn" class="px-4 py-2 font-bold rounded-xl bg-emerald-400 text-black hover:opacity-90 shadow-glow" disabled>Mint 1000 MONS</button>
-      </div>
-    </header>
+<body class="min-h-screen flex flex-col items-center py-10">
 
-    <!-- Stats -->
-    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-      <div class="glass rounded-2xl p-5">
-        <div class="text-mute text-sm">Total Minted</div>
-        <div id="statTotalMinted" class="text-4xl font-extrabold mt-1">0</div>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <div class="text-mute text-sm">Remaining</div>
-        <div id="statRemaining" class="text-4xl font-extrabold mt-1">21,000,000</div>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <div class="text-mute text-sm">Holders</div>
-        <div id="statHolders" class="text-4xl font-extrabold mt-1">0</div>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <div class="text-mute text-sm">Mint Count</div>
-        <div id="statMintCount" class="text-4xl font-extrabold mt-1">0</div>
-      </div>
-    </section>
+  <h1 class="text-4xl font-bold mb-6">🚀 MON-20 Explorer & Minter</h1>
 
-    <!-- Progress & status -->
-    <section class="glass rounded-2xl p-5 mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <div class="font-semibold">Mint Progress</div>
-        <div class="text-sm text-mute"><span id="progressPct">0.00%</span></div>
-      </div>
-      <div class="w-full h-4 bg-[#1b2235] rounded-full overflow-hidden">
-        <div id="progressBar" class="h-4 bg-gradient-to-r from-accent to-accent2 w-0 transition-all"></div>
-      </div>
-      <div class="flex flex-wrap items-center gap-4 text-sm text-mute mt-3">
-        <div id="scanStatus">Indexing: connecting…</div>
-        <div>•</div>
-        <div id="lastBlock">Last synced block: -</div>
-        <div>•</div>
-        <div>API: <span id="apiUrl" class="mono"></span></div>
-        <div>•</div>
-        <div>RPC: <span id="rpcUrl" class="mono">-</span></div>
-      </div>
-      <div id="apiError" class="hidden mt-3 text-xs text-red-300">API error. Retrying…</div>
-    </section>
-
-    <!-- Wallet + Holders -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-10">
-      <div class="glass rounded-2xl p-5">
-        <div class="flex items-center justify-between">
-          <div class="font-semibold">Wallet</div>
-          <span id="netBadge" class="text-xs px-2 py-1 rounded-full bg-[#1b2235]">Not connected</span>
-        </div>
-        <div class="mt-3 mono text-sm">
-          <div class="flex items-center justify-between py-1">
-            <span class="text-mute">Address</span>
-            <span id="walletAddr">-</span>
-          </div>
-          <div class="flex items-center justify-between py-1">
-            <span class="text-mute">MON</span>
-            <span id="monBalance">0</span>
-          </div>
-          <div class="flex items-center justify-between py-1">
-            <span class="text-mute">MONS</span>
-            <span id="monsBalance">0</span>
-          </div>
-        </div>
-        <div class="mt-4 text-xs text-mute">
-          Mint format:
-          <span class="mono">{"p":"mon-20","op":"mint","tick":"MONS","amt":"1000"}</span>
-        </div>
-      </div>
-
-      <div class="glass rounded-2xl p-5 lg:col-span-2">
-        <div class="flex items-center justify-between">
-          <div class="font-semibold">Top Holders</div>
-          <div class="text-xs text-mute">Sorted by balance</div>
-        </div>
-        <div class="mt-3 overflow-auto">
-          <table class="w-full text-sm">
-            <thead class="text-mute">
-              <tr>
-                <th class="text-left py-2">#</th>
-                <th class="text-left py-2">Address</th>
-                <th class="text-right py-2">Balance (MONS)</th>
-              </tr>
-            </thead>
-            <tbody id="holdersTable"></tbody>
-          </table>
-          <div id="holdersEmpty" class="text-mute text-sm py-4 hidden">No holders yet…</div>
-        </div>
-      </div>
-    </section>
-
-    <footer class="text-center text-xs text-mute">
-      Created by
-      <a href="https://x.com/ega_2ez4crypto" target="_blank" class="text-accent hover:opacity-80">@ega_2ez4crypto</a>
-      • Fully decentralized • No database • All data on-chain
-    </footer>
+  <!-- Wallet -->
+  <div class="card w-96 text-center mb-6">
+    <h2 class="text-xl font-semibold mb-2">Wallet</h2>
+    <button id="connectBtn" class="btn mb-3">Connect Wallet</button>
+    <p id="walletAddr" class="break-all text-sm text-gray-300"></p>
+    <p id="walletBal" class="text-lg font-bold"></p>
   </div>
 
-  <!-- libs -->
-  <script type="module">
-    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.min.js";
+  <!-- Stats -->
+  <div class="card w-3/4 mb-6">
+    <h2 class="text-2xl font-semibold mb-4">📊 Token Stats</h2>
+    <p><b>Total Minted:</b> <span id="totalMinted">0</span></p>
+    <p><b>Mint Count:</b> <span id="mintCount">0</span></p>
+    <p><b>Last Block:</b> <span id="lastBlock">0</span></p>
+    <div class="w-full bg-gray-700 h-4 rounded mt-3">
+      <div id="mintProgress" class="bg-gradient-to-r from-indigo-500 to-cyan-400 h-4 rounded" style="width:0%"></div>
+    </div>
+  </div>
 
-    /* ========= CONFIG ========= */
-    const API_BASE = "https://mon20-indexer-backend-production.up.railway.app"; // ganti kalau perlu
-    const CHAIN_ID_DEC = 10143;
-    const CHAIN_ID_HEX = "0x" + CHAIN_ID_DEC.toString(16); // 0x279f
-    const MAX_SUPPLY = 21_000_000;
-    const MINT_LIMIT = 1000;
-    const TICK = "MONS";
-    document.getElementById("apiUrl").textContent = API_BASE;
+  <!-- Mint -->
+  <div class="card w-96 text-center mb-6">
+    <h2 class="text-xl font-semibold mb-3">Mint MONS</h2>
+    <button id="mintBtn" class="btn">Mint 1000 MONS</button>
+    <p id="mintStatus" class="mt-3 text-sm text-gray-300"></p>
+  </div>
 
-    /* ========= STATE ========= */
-    let provider = null;
-    let signer = null;
-    let currentAccount = null;
-    let holdersCache = [];
+  <!-- Holders -->
+  <div class="card w-3/4">
+    <h2 class="text-2xl font-semibold mb-4">🏆 Top Holders</h2>
+    <table class="w-full text-left">
+      <thead>
+        <tr class="border-b border-gray-600">
+          <th class="py-2">Address</th>
+          <th class="py-2">Balance</th>
+        </tr>
+      </thead>
+      <tbody id="holdersTable"></tbody>
+    </table>
+  </div>
 
-    /* ========= HELPERS ========= */
-    const $ = id => document.getElementById(id);
-    const shortAddr = a => a ? a.slice(0,6)+"…"+a.slice(-4) : "-";
-    function jsonToHex(obj){
-      const s = JSON.stringify(obj);
-      const bytes = new TextEncoder().encode(s);
-      let hex = "0x";
-      for (const b of bytes) hex += b.toString(16).padStart(2,"0");
-      return hex;
-    }
-    const sleep = ms => new Promise(r=>setTimeout(r,ms));
+<script>
+const API = "https://mon20-indexer-backend-production.up.railway.app"; // ganti ke URL Railway kamu
+let provider, signer, userAddr;
 
-    /* ========= API CALLS (retry) ========= */
-    async function fetchJson(url, {tries=3, delay=1200} = {}){
-      for(let i=0;i<tries;i++){
-        try{
-          const res = await fetch(url, { cache:"no-store" });
-          if(!res.ok) throw new Error("HTTP "+res.status);
-          return await res.json();
-        }catch(e){
-          if(i===tries-1) throw e;
-          $("apiError").classList.remove("hidden");
-          await sleep(delay);
-        }
-      }
-    }
+// -------- Wallet --------
+async function connectWallet() {
+  if (!window.ethereum) { alert("Install MetaMask!"); return; }
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+  userAddr = await signer.getAddress();
+  document.getElementById("walletAddr").innerText = userAddr;
+  updateBalance();
+}
+async function updateBalance() {
+  if (!provider || !userAddr) return;
+  const bal = await provider.getBalance(userAddr);
+  document.getElementById("walletBal").innerText =
+    "Balance: " + ethers.formatEther(bal) + " MON";
+}
 
-    async function refreshData(){
-      try{
-        const [stats, holders] = await Promise.all([
-          fetchJson(API_BASE+"/stats"),
-          fetchJson(API_BASE+"/holders")
-        ]);
+// -------- API Fetch --------
+async function fetchStats() {
+  try {
+    const res = await fetch(API + "/stats");
+    const s = await res.json();
+    document.getElementById("totalMinted").innerText = s.totalMinted;
+    document.getElementById("mintCount").innerText  = s.mintCount;
+    document.getElementById("lastBlock").innerText  = s.lastBlock;
+    document.getElementById("mintProgress").style.width =
+      Math.min((s.totalMinted/21000000)*100,100)+"%";
+  } catch(e){ console.log("stats err", e); }
+}
+async function fetchHolders() {
+  try {
+    const res = await fetch(API + "/holders");
+    const h = await res.json();
+    const tb = document.getElementById("holdersTable");
+    tb.innerHTML = "";
+    h.forEach(r => {
+      tb.innerHTML += `<tr class="border-b border-gray-700">
+        <td class="py-1">${r.address}</td>
+        <td class="py-1">${r.balance}</td>
+      </tr>`;
+    });
+  } catch(e){ console.log("holders err", e); }
+}
 
-        // optional metadata from root
-        try {
-          const meta = await fetchJson(API_BASE+"/");
-          if(meta?.rpc) $("rpcUrl").textContent = meta.rpc;
-        } catch { /* ignore */ }
+// -------- Mint (self-transfer with JSON data) --------
+async function mint() {
+  if (!signer) return alert("Connect wallet dulu");
+  try {
+    const tx = {
+      to: userAddr,
+      value: 0,
+      data: ethers.hexlify(ethers.toUtf8Bytes(JSON.stringify({
+        p: "MON-20",
+        op: "mint",
+        tick: "MONS",
+        amt: "1000"
+      })))
+    };
+    const sent = await signer.sendTransaction(tx);
+    document.getElementById("mintStatus").innerText = "⏳ Tx sent: " + sent.hash;
+    await sent.wait();
+    document.getElementById("mintStatus").innerText = "✅ Mint success!";
+    fetchStats(); fetchHolders();
+  } catch(e) {
+    console.log(e);
+    document.getElementById("mintStatus").innerText = "❌ " + e.message;
+  }
+}
 
-        // stats
-        const total = Number(stats?.totalMinted||0);
-        $("statTotalMinted").textContent = total.toLocaleString();
-        $("statRemaining").textContent = Math.max(0, MAX_SUPPLY-total).toLocaleString();
-        $("statMintCount").textContent = Number(stats?.mintCount||0).toLocaleString();
-        $("lastBlock").textContent = "Last synced block: " + Number(stats?.lastBlock||0).toLocaleString();
+// -------- Auto Refresh --------
+setInterval(()=>{ fetchStats(); fetchHolders(); if(userAddr) updateBalance(); }, 8000);
 
-        // progress
-        const pct = Math.min(100, (total / MAX_SUPPLY) * 100);
-        $("progressBar").style.width = pct.toFixed(4)+"%";
-        $("progressPct").textContent = pct.toFixed(2)+"%";
+// -------- Bind Buttons --------
+document.getElementById("connectBtn").onclick = connectWallet;
+document.getElementById("mintBtn").onclick = mint;
 
-        // holders
-        holdersCache = Array.isArray(holders) ? holders : [];
-        $("statHolders").textContent = holdersCache.length.toLocaleString();
-        renderHolders();
-
-        // wallet MONS balance
-        if(currentAccount){
-          const self = holdersCache.find(h => h.address.toLowerCase() === currentAccount.toLowerCase());
-          $("monsBalance").textContent = self ? Number(self.balance).toLocaleString() : "0";
-        }
-
-        $("scanStatus").textContent = "Indexing: ✅ live";
-        $("apiError").classList.add("hidden");
-      }catch(e){
-        $("scanStatus").textContent = "Indexing: ❌ "+(e?.message||e);
-        $("apiError").classList.remove("hidden");
-      }
-    }
-
-    function renderHolders(){
-      const body = $("holdersTable");
-      body.innerHTML = "";
-      if(holdersCache.length === 0){
-        $("holdersEmpty").classList.remove("hidden");
-        return;
-      }
-      $("holdersEmpty").classList.add("hidden");
-      holdersCache
-        .slice(0, 100)
-        .forEach((h,i)=>{
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td class="py-2 pr-3 text-mute">${i+1}</td>
-            <td class="py-2 pr-3 mono">
-              <a class="hover:underline" target="_blank" href="https://testnet.monadexplorer.com/address/${h.address}">
-                ${shortAddr(h.address)}
-              </a>
-            </td>
-            <td class="py-2 text-right font-semibold">${Number(h.balance).toLocaleString()}</td>
-          `;
-          body.appendChild(tr);
-        });
-    }
-
-    /* ========= WALLET ========= */
-    async function ensureMonad(){
-      if(!window.ethereum) throw new Error("Wallet not found");
-      try{
-        await window.ethereum.request({
-          method:"wallet_switchEthereumChain",
-          params:[{ chainId: CHAIN_ID_HEX }]
-        });
-      }catch(switchErr){
-        // add
-        await window.ethereum.request({
-          method:"wallet_addEthereumChain",
-          params:[{
-            chainId: CHAIN_ID_HEX,
-            chainName:"Monad Testnet",
-            rpcUrls:["https://rpc.ankr.com/monad_testnet","https://testnet-rpc.monad.xyz"],
-            nativeCurrency:{ name:"MON", symbol:"MON", decimals:18 },
-            blockExplorerUrls:["https://testnet.monadexplorer.com"]
-          }]
-        });
-      }
-    }
-
-    async function connectWallet(){
-      try{
-        if(!window.ethereum) return alert("MetaMask not found");
-        await ensureMonad();
-        provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = await provider.getSigner();
-        currentAccount = await signer.getAddress();
-
-        $("connectBtn").textContent = "Wallet Connected";
-        $("netBadge").textContent = "Monad Testnet (10143)";
-        $("walletAddr").textContent = currentAccount;
-        $("mintBtn").disabled = false;
-
-        await refreshMonBalance();
-        await refreshData();
-      }catch(e){
-        alert("Connect failed: "+(e?.message||e));
-      }
-    }
-    $("connectBtn").addEventListener("click", connectWallet);
-
-    async function refreshMonBalance(){
-      if(!provider || !currentAccount) return;
-      try{
-        const wei = await provider.getBalance(currentAccount);
-        $("monBalance").textContent = ethers.formatEther(wei);
-      }catch{}
-    }
-    setInterval(refreshMonBalance, 15000);
-
-    if(window.ethereum){
-      window.ethereum.on?.("accountsChanged", async (accs)=>{
-        if(accs && accs.length){
-          currentAccount = accs[0];
-          $("walletAddr").textContent = currentAccount;
-          signer = await provider.getSigner();
-          await refreshMonBalance();
-          await refreshData();
-        }
-      });
-      window.ethereum.on?.("chainChanged", ()=>location.reload());
-    }
-
-    /* ========= MINT ========= */
-    async function mintToken(){
-      try{
-        if(!signer) return alert("Connect wallet first");
-        await ensureMonad();
-
-        const payload = { p:"mon-20", op:"mint", tick:TICK, amt:String(MINT_LIMIT) };
-        const dataHex = jsonToHex(payload);
-        const to = await signer.getAddress();
-
-        // kirim tx self-transfer
-        const tx = await signer.sendTransaction({ to, value: 0n, data: dataHex });
-        toast("Mint submitted", tx.hash);
-
-        // tunggu mined (1 konfirmasi)
-        $("mintBtn").disabled = true;
-        $("mintBtn").textContent = "Minting…";
-        await provider.waitForTransaction(tx.hash, 1, 180_000).catch(()=>{});
-        $("mintBtn").disabled = false;
-        $("mintBtn").textContent = "Mint 1000 MONS";
-
-        // refresh UI
-        await refreshData();
-        await refreshMonBalance();
-      }catch(e){
-        alert("Mint failed: " + (e?.message||e));
-      }
-    }
-    $("mintBtn").addEventListener("click", mintToken);
-
-    /* ========= UI: toast ========= */
-    function toast(title, hash){
-      const el = document.createElement("div");
-      el.className = "fixed right-4 bottom-4 p-4 rounded-xl glass shadow-glow w-[320px]";
-      el.innerHTML = `
-        <div class="font-bold">${title}</div>
-        <div class="text-xs text-mute mt-1">Tx:
-          <a target="_blank" class="underline hover:opacity-80" href="https://testnet.monadexplorer.com/tx/${hash}">${shortAddr(hash)}</a>
-        </div>`;
-      document.body.appendChild(el);
-      setTimeout(()=>el.remove(), 6500);
-    }
-
-    /* ========= Boot ========= */
-    refreshData();
-    setInterval(refreshData, 8000);
-  </script>
+// Init
+fetchStats(); fetchHolders();
+</script>
 </body>
 </html>
