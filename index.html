@@ -109,7 +109,7 @@
   </div>
 
 <script>
-// Config (pre-filled with user's values)
+// Updated script: ethers v6 connect + self-transfer inscription mint + block-scanning indexer
 const PRESET = {
   chainId: 10143,
   rpc: 'https://testnet-rpc.monad.xyz',
@@ -119,29 +119,11 @@ const PRESET = {
   supplyCap: '21000000'
 };
 
-// Minimal ABI that helps with common ERC20-like tokens + Transfer event
-const MIN_ABI = [
-  // totalSupply, balanceOf, decimals, Transfer event, name, symbol
-  "function totalSupply() view returns (uint256)",
-  "function balanceOf(address) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-  "event Transfer(address indexed from, address indexed to, uint256 value)",
-  "function name() view returns (string)",
-  "function symbol() view returns (string)",
-  // optional mint signature -- many inscriptive systems use different names; attempt common ones
-  "function mint(address to, uint256 amount) returns (bool)",
-  "function mint(uint256 amount) returns (bool)"
-];
-
-let provider = new ethers.providers.JsonRpcProvider(PRESET.rpc);
-let walletProvider = null; // metamask/ethers Web3Provider
+let provider = new ethers.JsonRpcProvider(PRESET.rpc);
+let walletProvider = null;
 let signer = null;
-let contractAddress = '';
-let contract = null;
-let decimals = PRESET.decimals;
-let supplyCap = BigInt(PRESET.supplyCap) * (BigInt(10) ** BigInt(decimals));
 
-// UI elements
+// UI references
 const connectBtn = document.getElementById('connectBtn');
 const mintBtn = document.getElementById('mintBtn');
 const estimateBtn = document.getElementById('estimateBtn');
@@ -168,107 +150,236 @@ function log(msg) {
   consoleEl.textContent = `[${t}] ${msg}\n` + consoleEl.textContent;
 }
 
+// ---------------- Wallet connect (ethers v6 correct usage) ----------------
 async function connectWallet() {
   if (window.ethereum) {
     try {
       walletProvider = new ethers.BrowserProvider(window.ethereum);
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      // request accounts
+      await walletProvider.send('eth_requestAccounts', []);
       signer = await walletProvider.getSigner();
       const addr = await signer.getAddress();
       connectBtn.innerText = addr.slice(0,6) + '...' + addr.slice(-4);
       log('Wallet connected: ' + addr);
     } catch (e) {
-      log('User rejected connection or error: ' + (e.message || e));
+      log('Connection error: ' + (e.message || e));
+      alert('Wallet connection failed: ' + (e.message || e));
     }
   } else {
-    log('No web3 wallet found — only read-only mode');
+    log('No Web3 wallet found — read-only mode');
+    alert('No Web3 wallet found. Install MetaMask or another Ethereum provider.');
   }
 }
-
 connectBtn.addEventListener('click', connectWallet);
 
 applyBtn.addEventListener('click', () => {
-  const addr = contractInput.value.trim();
   const dec = parseInt(decimalsInput.value || '18');
-  if (addr && ethers.isAddress && !ethers.isAddress(addr)) {
-    alert('Invalid contract address');
-    return;
-  }
-  contractAddress = addr;
-  decimals = dec;
-  // recreate contract if address provided
-  if (addr) contract = new ethers.Contract(addr, MIN_ABI, provider);
-  log('Settings applied. Contract: ' + (addr || 'none') + ' | decimals: ' + decimals);
-  // refresh indexer immediately
-  runIndexer().catch(e=>log('Indexer error: '+e));
+  PRESET.decimals = dec;
+  log('Applied decimals: ' + dec);
+  // indexer will pick up new settings
 });
 
-// Mint flow
+// ---------------- Mint via self-transfer inscription ----------------
 mintBtn.addEventListener('click', async () => {
-  const amt = BigInt(mintAmountInput.value || '0');
-  if (amt <= 0n) return alert('Amount must be > 0');
-  if (amt > BigInt(PRESET.maxPerMint)) return alert('Amount exceeds per-mint limit of ' + PRESET.maxPerMint);
-
   if (!signer) return alert('Connect wallet first');
-  if (!contractAddress) return alert('Set contract address in settings');
-
-  const recipient = (recipientInput.value.trim() || await signer.getAddress());
-  const scaled = amt * (BigInt(10) ** BigInt(decimals));
+  const amt = parseInt(mintAmountInput.value || '0');
+  if (!amt || amt <= 0) return alert('Amount must be > 0');
+  if (amt > PRESET.maxPerMint) return alert('Amount exceeds per-mint limit of ' + PRESET.maxPerMint);
 
   try {
-    mintStatus.innerText = 'Preparing transaction...';
-    // Attempt to call common mint(address,uint256) or mint(uint256) if available
-    const contractWithSigner = new ethers.Contract(contractAddress, MIN_ABI, signer);
-    let tx;
-    // Try mint(to, amount)
-    try {
-      tx = await contractWithSigner.mint(recipient, scaled);
-      log('Sent mint(recipient,amount) tx: ' + tx.hash);
-    } catch (e1) {
-      log('mint(recipient,amount) failed, trying mint(amount): ' + (e1.message||e1));
-      try {
-        tx = await contractWithSigner.mint(scaled);
-        log('Sent mint(amount) tx: ' + tx.hash);
-      } catch (e2) {
-        log('Direct mint() calls failed. Falling back to raw transaction attempt. ' + (e2.message||e2));
-        // As fallback, let user confirm a raw call data if needed — constructing raw data is risky; so we simply create a generic transaction to the contract with value 0 and data empty to let contract handle it.
-        tx = await signer.sendTransaction({ to: contractAddress, value: 0n, data: '0x' });
-        log('Sent fallback empty tx: ' + tx.hash);
-      }
+    const addr = await signer.getAddress();
+
+    const inscription = {
+      p: 'mon-20',
+      op: 'mint',
+      tick: PRESET.tokenTick,
+      amt: amt.toString()
+    };
+
+    const dataHex = ethers.hexlify(ethers.toUtf8Bytes(JSON.stringify(inscription)));
+
+    mintStatus.innerText = 'Sending mint transaction...';
+    const tx = await signer.sendTransaction({ to: addr, value: 0n, data: dataHex });
+    log('Mint tx sent: ' + tx.hash);
+    mintStatus.innerText = 'Transaction sent: ' + tx.hash;
+    await tx.wait();
+    mintStatus.innerText = 'Confirmed: ' + tx.hash;
+    log('Mint confirmed: ' + tx.hash);
+
+    // immediate UI update
+    await runIndexer();
+  } catch (e) {
+    log('Mint error: ' + (e.message || e));
+    mintStatus.innerText = 'Mint failed: ' + (e.message || e);
+  }
+});
+
+// ---------------- Indexer: scan blocks for self-transfer inscriptions ----------------
+// Strategy:
+// - Track last scanned block in localStorage to avoid re-scanning entire chain every load.
+// - On each run, scan blocks from lastScannedBlock+1 to latest (batched).
+// - Parse transactions where tx.from === tx.to and tx.data contains valid UTF-8 JSON
+//   with p: "mon-20" and op: "mint" / "deploy" and tick matches token tick.
+
+const BATCH = 200; // blocks per batch (tune for RPC)
+let lastScannedKey = 'mons_last_scanned_block';
+let lastScanned = parseInt(localStorage.getItem(lastScannedKey) || '0');
+let holdersMap = new Map(); // address => minted amount (BigInt of units)
+let totalMinted = 0n;
+
+function humanAmount(nBigInt) {
+  try {
+    const denom = 10n ** BigInt(PRESET.decimals);
+    return Number(nBigInt / denom).toLocaleString();
+  } catch(e){ return String(nBigInt); }
+}
+
+async function runIndexer() {
+  try {
+    const latest = await provider.getBlockNumber();
+    if (lastScanned === 0) {
+      // seed start block to latest-5000 for safe default to avoid scanning full chain on first run
+      lastScanned = Math.max(0, latest - 5000);
+    }
+    if (lastScanned >= latest) {
+      // nothing to do, but refresh UI
+      renderIndexerUI();
+      return;
     }
 
-    mintStatus.innerText = 'Transaction sent. Hash: ' + tx.hash;
-    await tx.wait();
-    mintStatus.innerText = 'Transaction confirmed: ' + tx.hash;
-    log('Tx confirmed: ' + tx.hash);
-    // refresh indexer
-    await runIndexer();
+    log(`Indexer scanning blocks ${lastScanned + 1} .. ${latest}`);
+    for (let start = lastScanned + 1; start <= latest; start += BATCH) {
+      const end = Math.min(latest, start + BATCH - 1);
+      // fetch blocks in batch sequentially (could parallelize if needed)
+      for (let b = start; b <= end; b++) {
+        try {
+          const block = await provider.getBlockWithTransactions(b);
+          for (const tx of block.transactions) {
+            if (!tx.to) continue;
+            // self-transfer check (to === from)
+            if (tx.to.toLowerCase() !== tx.from.toLowerCase()) continue;
+            if (!tx.data || tx.data === '0x') continue;
+            // try decode as utf8
+            let txt = null;
+            try {
+              // strip 0x
+              const hex = tx.data.startsWith('0x') ? tx.data.slice(2) : tx.data;
+              const bytes = ethers.hexToBytes('0x' + hex);
+              txt = new TextDecoder().decode(new Uint8Array(bytes));
+            } catch (e) {
+              // not UTF-8 json
+              continue;
+            }
+            let parsed = null;
+            try {
+              parsed = JSON.parse(txt);
+            } catch (e) {
+              continue;
+            }
+            // check it's our mon-20 inscription
+            if (!parsed || !parsed.p) continue;
+            const pval = String(parsed.p).toLowerCase();
+            if (pval !== 'mon-20') continue;
+            const op = String(parsed.op || '').toLowerCase();
+            const tick = String(parsed.tick || '').toUpperCase();
+            if (tick !== PRESET.tokenTick) continue;
+
+            // handle deploy (optional) or mint
+            if (op === 'mint') {
+              // amount may be string or number
+              const amtRaw = parsed.amt || parsed.amount || '1';
+              const amtNum = BigInt(String(amtRaw));
+              const scaled = amtNum * (10n ** BigInt(PRESET.decimals));
+              // accumulate
+              const addr = tx.from.toLowerCase();
+              holdersMap.set(addr, (holdersMap.get(addr) || 0n) + scaled);
+              totalMinted += scaled;
+
+              // add to live txs
+              const entry = document.createElement('div');
+              entry.innerHTML = `<div class='py-1 border-b border-slate-700'>Hash: <a href='#' class='text-amber-300'>${tx.hash}</a><br/>From: ${tx.from}<br/>Amt: ${amtNum}</div>`;
+              liveTxsEl.prepend(entry);
+              while (liveTxsEl.children.length > 100) liveTxsEl.removeChild(liveTxsEl.lastChild);
+            } else if (op === 'deploy') {
+              log('Found deploy inscription in tx ' + tx.hash);
+            }
+          }
+        } catch (be) {
+          console.error('Block fetch error', be);
+        }
+      }
+      // update lastScanned to end
+      lastScanned = end;
+      localStorage.setItem(lastScannedKey, String(lastScanned));
+      renderIndexerUI();
+    }
   } catch (err) {
-    log('Mint error: ' + (err?.message || err));
-    mintStatus.innerText = 'Mint failed: ' + (err?.message || err);
+    log('Indexer run error: ' + (err.message || err));
   }
-});
+}
 
-// Estimate (gas/validation)
-estimateBtn.addEventListener('click', async () => {
-  const amt = BigInt(mintAmountInput.value || '0');
-  if (amt <= 0n) return alert('Amount must be > 0');
-  if (amt > BigInt(PRESET.maxPerMint)) return alert('Amount exceeds per-mint limit');
-  if (!contractAddress) return alert('Set contract address');
-  if (!signer) return alert('Connect wallet');
+function renderIndexerUI() {
+  // compute top holders sorted
+  const arr = Array.from(holdersMap.entries()).map(([addr, bal]) => ({ addr, bal }));
+  arr.sort((a,b)=> (b.bal > a.bal ? 1 : b.bal < a.bal ? -1 : 0));
+  topHoldersList.innerHTML = '';
+  arr.slice(0,20).forEach(t => {
+    const li = document.createElement('li');
+    li.textContent = `${t.addr} — ${humanAmount(t.bal)}`;
+    topHoldersList.appendChild(li);
+  });
+  totalHoldersEl.innerText = arr.length;
+  topHolderEl.innerText = arr[0] ? arr[0].addr : '—';
+  totalMintedEl.innerText = humanAmount(totalMinted);
+
+  // update chart
   try {
-    const scaled = amt * (BigInt(10) ** BigInt(decimals));
-    const c = new ethers.Contract(contractAddress, MIN_ABI, signer);
-    let gasEstimate;
-    try { gasEstimate = await c.estimateGas.mint(await signer.getAddress(), scaled); }
-    catch(e){ gasEstimate = await c.estimateGas.mint(scaled).catch(()=>null); }
-    if (gasEstimate) alert('Gas estimate: ' + gasEstimate.toString());
-    else alert('Could not estimate gas for mint.');
-  } catch (e) { alert('Estimate failed: ' + (e?.message||e)); }
+    const mintedNum = Number(totalMinted / (10n ** BigInt(PRESET.decimals)));
+    const capNum = Number(BigInt(PRESET.supplyCap));
+    chart.data.datasets[0].data = [mintedNum, Math.max(0, capNum - mintedNum)];
+    chart.update();
+  } catch(e){}
+}
+
+// start initial indexer run and then periodic
+runIndexer().catch(e=>log('Initial indexer error: '+e));
+setInterval(()=>{ runIndexer().catch(e=>log('Periodic indexer error: '+e)); }, 30_000);
+
+// Live feed: subscribe to new blocks and show self-transfer inscription txs immediately
+provider.on('block', async (bn) => {
+  try {
+    const block = await provider.getBlockWithTransactions(bn);
+    for (const tx of block.transactions) {
+      if (!tx.to) continue;
+      if (tx.to.toLowerCase() !== tx.from.toLowerCase()) continue;
+      if (!tx.data || tx.data === '0x') continue;
+      // quick decode attempt
+      let txt = null;
+      try { txt = new TextDecoder().decode(new Uint8Array(ethers.hexToBytes(tx.data))); } catch(e){ continue; }
+      let parsed = null;
+      try { parsed = JSON.parse(txt); } catch(e){ continue; }
+      if (!parsed || String(parsed.p).toLowerCase() !== 'mon-20') continue;
+      if (String(parsed.tick || '').toUpperCase() !== PRESET.tokenTick) continue;
+      // show
+      const entry = document.createElement('div');
+      entry.innerHTML = `<div class='py-1 border-b border-slate-700'>[LIVE] Hash: <a href='#' class='text-amber-300'>${tx.hash}</a><br/>From: ${tx.from}<br/>Data: ${JSON.stringify(parsed)}</div>`;
+      liveTxsEl.prepend(entry);
+      while (liveTxsEl.children.length > 100) liveTxsEl.removeChild(liveTxsEl.lastChild);
+      // update holders summary quickly
+      try {
+        if (parsed.op && String(parsed.op).toLowerCase() === 'mint') {
+          const amtNum = BigInt(String(parsed.amt || parsed.amount || '1')) * (10n ** BigInt(PRESET.decimals));
+          const addr = tx.from.toLowerCase();
+          holdersMap.set(addr, (holdersMap.get(addr) || 0n) + amtNum);
+          totalMinted += amtNum;
+          renderIndexerUI();
+        }
+      } catch(e){ }
+    }
+  } catch(e) { console.error(e); }
 });
 
-// ---------------- Indexer: compute holders/top holders and live txs ----------------
-let chart = null;
+// Chart setup (reuse existing)
 function setupChart() {
   const ctx = document.getElementById('supplyChart').getContext('2d');
   chart = new Chart(ctx, {
@@ -278,113 +389,6 @@ function setupChart() {
   });
 }
 setupChart();
-
-async function runIndexer() {
-  if (!contractAddress) {
-    log('Indexer: no contract configured.');
-    return;
-  }
-  log('Indexer: scanning events for ' + contractAddress);
-  const c = new ethers.Contract(contractAddress, MIN_ABI, provider);
-  // Try to fetch totalSupply via contract API
-  let totalSupply = null;
-  try {
-    totalSupply = await c.totalSupply();
-  } catch (e) {
-    log('totalSupply() call failed: ' + (e.message||e));
-  }
-
-  // Now try to get Transfer logs for holder computation. We will fetch logs from block 0 to latest — IMPORTANT: on mainnets this is heavy; on testnet it's usually OK. Consider adding backend indexing for production.
-  try {
-    const latest = await provider.getBlockNumber();
-    // Transfer topic
-    const transferTopic = ethers.id('Transfer(address,address,uint256)');
-    const logs = await provider.getLogs({ address: contractAddress, fromBlock: 0, toBlock: latest, topics: [transferTopic] });
-    log('Fetched ' + logs.length + ' Transfer logs');
-
-    // compute balances
-    const balances = new Map();
-    for (const l of logs) {
-      const parsed = ethers.Interface.from(MIN_ABI).parseLog(l);
-      const from = parsed.args.from.toLowerCase();
-      const to = parsed.args.to.toLowerCase();
-      const val = BigInt(parsed.args.value.toString());
-      if (from !== ethers.ZeroAddress) {
-        balances.set(from, (balances.get(from) || 0n) - val);
-      }
-      balances.set(to, (balances.get(to) || 0n) + val);
-    }
-
-    // Clean up zero/negative balances
-    const cleaned = [];
-    for (const [addr, bal] of balances.entries()) {
-      if (bal > 0n) cleaned.push({ addr, bal });
-    }
-    cleaned.sort((a,b)=> (b.bal > a.bal ? 1 : b.bal < a.bal ? -1 : 0));
-
-    // top holders
-    const top = cleaned.slice(0,10);
-    topHoldersList.innerHTML = '';
-    top.forEach((t, idx) => {
-      const display = Number(t.bal / (10n ** BigInt(decimals))).toLocaleString();
-      const li = document.createElement('li');
-      li.textContent = `${t.addr} — ${display}`;
-      topHoldersList.appendChild(li);
-    });
-
-    totalHoldersEl.innerText = cleaned.length;
-    topHolderEl.innerText = (top[0] ? top[0].addr : '—');
-
-    // total minted
-    if (totalSupply != null) {
-      const human = Number(totalSupply / (10n ** BigInt(decimals))).toLocaleString();
-      totalMintedEl.innerText = human;
-      const mintedNum = Number(totalSupply / (10n ** BigInt(decimals)));
-      const capNum = Number(BigInt(PRESET.supplyCap));
-      chart.data.datasets[0].data = [mintedNum, Math.max(0, capNum - mintedNum)];
-      chart.update();
-    } else {
-      // if no totalSupply, compute from balances sum
-      const sum = cleaned.reduce((s,t)=> s + Number(t.bal / (10n ** BigInt(decimals))), 0);
-      totalMintedEl.innerText = sum.toLocaleString();
-      const capNum = Number(BigInt(PRESET.supplyCap));
-      chart.data.datasets[0].data = [sum, Math.max(0, capNum - sum)];
-      chart.update();
-    }
-
-  } catch (err) {
-    log('Indexer failure: ' + (err?.message || err));
-  }
-}
-
-// Live txs: listen for new blocks and show transactions involving the contract
-let seenTxs = new Set();
-async function startLiveFeed() {
-  const p = new ethers.providers.JsonRpcProvider(PRESET.rpc);
-  p.on('block', async (bn) => {
-    try {
-      const block = await p.getBlockWithTransactions(bn);
-      for (const tx of block.transactions) {
-        if (tx.to && tx.to.toLowerCase() === contractAddress.toLowerCase()) {
-          if (seenTxs.has(tx.hash)) continue;
-          seenTxs.add(tx.hash);
-          const entry = document.createElement('div');
-          entry.innerHTML = `<div class='py-1 border-b border-slate-700'>Hash: <a href='#' class='text-amber-300'>${tx.hash}</a><br/>From: ${tx.from}<br/>Value: ${ethers.formatEther(tx.value)} ETH</div>`;
-          liveTxsEl.prepend(entry);
-          // keep only last 50
-          while (liveTxsEl.children.length > 50) liveTxsEl.removeChild(liveTxsEl.lastChild);
-        }
-      }
-    } catch (e) { console.error(e); }
-  });
-}
-startLiveFeed();
-
-// Periodic indexer refresh
-setInterval(() => { runIndexer().catch(e=>log('Periodic indexer error: '+e)); }, 30_000);
-
-// initial run
-runIndexer().catch(e=>log('Initial indexer error: '+e));
 
 </script>
 </body>
