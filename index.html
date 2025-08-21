@@ -371,7 +371,8 @@
         </div>
 
         <div class="network-info">
-            <strong>MONAD Testnet</strong> | Chain ID: 10143 | Contract: 0x07169f0F890C3595421512D98DC79b8bce6E5fA6
+            <strong>MONAD Testnet</strong> | Chain ID: 10143 | Contract: 0x07169f0F890C3595421512D98DC79b8bce6E5fA6<br>
+            <small>⚠️ Only mints of 1-1000 MONS are considered valid. Larger amounts will not be indexed.</small>
         </div>
 
         <div class="main-content">
@@ -1098,8 +1099,37 @@
                 document.getElementById('mintButton').innerHTML = '<div class="loading"></div>Minting...';
                 showStatus('mintStatus', 'Processing mint transaction...', 'info');
 
+                // Get current mint fee
                 const mintFee = await contract.methods.mintFee().call();
+                
+                // Convert amount to Wei (18 decimals) - this is the correct conversion
                 const amountInWei = web3.utils.toWei(amount.toString(), 'ether');
+                
+                // Validate the amount doesn't exceed 1000 tokens (1000 * 10^18 wei)
+                const maxAmountWei = web3.utils.toWei('1000', 'ether');
+                if (web3.utils.toBN(amountInWei).gt(web3.utils.toBN(maxAmountWei))) {
+                    showStatus('mintStatus', 'Amount exceeds maximum limit of 1000 MONS per mint!', 'error');
+                    return;
+                }
+
+                // Check if user has already minted the maximum
+                const currentBalance = await contract.methods.getBalance(userAccount, TICKER).call();
+                const totalMinted = await contract.methods.getTotalMinted(TICKER).call();
+                const tokenInfo = await contract.methods.getTokenInfo(TICKER).call();
+                
+                // Check if mint would exceed total supply
+                const newTotal = web3.utils.toBN(totalMinted).add(web3.utils.toBN(amountInWei));
+                if (newTotal.gt(web3.utils.toBN(tokenInfo.maxSupply))) {
+                    showStatus('mintStatus', 'Minting this amount would exceed total supply!', 'error');
+                    return;
+                }
+
+                console.log('Minting details:', {
+                    amount: amount,
+                    amountInWei: amountInWei,
+                    mintFee: mintFee,
+                    ticker: TICKER
+                });
 
                 const gasEstimate = await contract.methods.mint(TICKER, amountInWei).estimateGas({
                     from: userAccount,
@@ -1118,21 +1148,41 @@
 
             } catch (error) {
                 console.error('Mint failed:', error);
-                showStatus('mintStatus', 'Mint failed: ' + (error.message || 'Unknown error'), 'error');
+                let errorMessage = 'Unknown error';
+                
+                if (error.message.includes('revert')) {
+                    if (error.message.includes('Amount exceeds limit per mint')) {
+                        errorMessage = 'Amount exceeds the limit of 1000 MONS per mint!';
+                    } else if (error.message.includes('Token does not exist')) {
+                        errorMessage = 'MONS token is not deployed yet!';
+                    } else if (error.message.includes('Exceeds max supply')) {
+                        errorMessage = 'Minting would exceed maximum supply!';
+                    } else {
+                        errorMessage = 'Transaction reverted. Please check your inputs and try again.';
+                    }
+                } else if (error.message.includes('insufficient funds')) {
+                    errorMessage = 'Insufficient funds for transaction fee.';
+                } else if (error.message.includes('user rejected')) {
+                    errorMessage = 'Transaction was cancelled by user.';
+                } else {
+                    errorMessage = error.message;
+                }
+                
+                showStatus('mintStatus', 'Mint failed: ' + errorMessage, 'error');
             } finally {
                 document.getElementById('mintButton').disabled = false;
                 document.getElementById('mintButton').innerHTML = 'Mint MONS';
             }
         }
 
-        // Transfer tokens
+        // Transfer tokens with proper validation
         async function transfer() {
             if (!userAccount) {
                 showStatus('transferStatus', 'Please connect your wallet first!', 'error');
                 return;
             }
 
-            const to = document.getElementById('transferTo').value;
+            const to = document.getElementById('transferTo').value.trim();
             const amount = parseInt(document.getElementById('transferAmount').value);
 
             if (!to || !web3.utils.isAddress(to)) {
@@ -1150,7 +1200,24 @@
                 document.getElementById('transferButton').innerHTML = '<div class="loading"></div>Transferring...';
                 showStatus('transferStatus', 'Processing transfer transaction...', 'info');
 
+                // Check user's balance first
+                const balance = await contract.methods.getBalance(userAccount, TICKER).call();
+                const balanceInTokens = parseInt(web3.utils.fromWei(balance, 'ether'));
+                
+                if (amount > balanceInTokens) {
+                    showStatus('transferStatus', `Insufficient balance! You have ${balanceInTokens} MONS`, 'error');
+                    return;
+                }
+
                 const amountInWei = web3.utils.toWei(amount.toString(), 'ether');
+
+                console.log('Transfer details:', {
+                    to: to,
+                    amount: amount,
+                    amountInWei: amountInWei,
+                    ticker: TICKER,
+                    userBalance: balanceInTokens
+                });
 
                 const gasEstimate = await contract.methods.transfer(to, TICKER, amountInWei).estimateGas({
                     from: userAccount
@@ -1161,7 +1228,7 @@
                     gas: Math.floor(gasEstimate * 1.2)
                 });
 
-                showStatus('transferStatus', `Successfully transferred ${amount} MONS! Transaction: ${tx.transactionHash}`, 'success');
+                showStatus('transferStatus', `Successfully transferred ${amount} MONS to ${to.substring(0,6)}...${to.substring(38)}! Transaction: ${tx.transactionHash}`, 'success');
                 updateWalletInfo();
                 loadTokenData();
 
@@ -1171,26 +1238,89 @@
 
             } catch (error) {
                 console.error('Transfer failed:', error);
-                showStatus('transferStatus', 'Transfer failed: ' + (error.message || 'Unknown error'), 'error');
+                let errorMessage = 'Unknown error';
+                
+                if (error.message.includes('revert')) {
+                    if (error.message.includes('Insufficient balance')) {
+                        errorMessage = 'Insufficient MONS balance for this transfer!';
+                    } else if (error.message.includes('Invalid recipient')) {
+                        errorMessage = 'Invalid recipient address!';
+                    } else {
+                        errorMessage = 'Transaction reverted. Please check your inputs and try again.';
+                    }
+                } else if (error.message.includes('insufficient funds')) {
+                    errorMessage = 'Insufficient ETH for transaction fee.';
+                } else if (error.message.includes('user rejected')) {
+                    errorMessage = 'Transaction was cancelled by user.';
+                } else {
+                    errorMessage = error.message;
+                }
+                
+                showStatus('transferStatus', 'Transfer failed: ' + errorMessage, 'error');
             } finally {
                 document.getElementById('transferButton').disabled = false;
                 document.getElementById('transferButton').innerHTML = 'Transfer MONS';
             }
         }
 
-        // Load token data
+        // Load token data with validation for invalid mints
         async function loadTokenData() {
             try {
                 const tokenInfo = await contract.methods.getTokenInfo(TICKER).call();
                 const maxSupply = parseInt(web3.utils.fromWei(tokenInfo.maxSupply, 'ether'));
-                const minted = parseInt(web3.utils.fromWei(tokenInfo.minted, 'ether'));
+                let totalMinted = parseInt(web3.utils.fromWei(tokenInfo.minted, 'ether'));
                 const holdersCount = parseInt(tokenInfo.holdersCount);
 
-                const remaining = maxSupply - minted;
-                const percentage = maxSupply > 0 ? ((minted / maxSupply) * 100).toFixed(2) : 0;
+                // Validate and filter out invalid mints
+                // Get all Inscribe events to validate mints
+                try {
+                    const fromBlock = 0; // Start from genesis block
+                    const toBlock = 'latest';
+                    
+                    const events = await contract.getPastEvents('Inscribe', {
+                        fromBlock: fromBlock,
+                        toBlock: toBlock,
+                        filter: {
+                            tick: TICKER
+                        }
+                    });
 
-                document.getElementById('totalMinted').textContent = formatNumber(minted);
-                document.getElementById('mintedAmount').textContent = formatNumber(minted);
+                    let validMinted = 0;
+                    const validTransactions = [];
+
+                    events.forEach(event => {
+                        const amount = parseInt(web3.utils.fromWei(event.returnValues.amount, 'ether'));
+                        
+                        // Only count mints that are <= 1000 MONS as valid
+                        if (event.returnValues.operation === 'mint' && amount > 0 && amount <= 1000) {
+                            validMinted += amount;
+                            validTransactions.push({
+                                user: event.returnValues.user,
+                                amount: amount,
+                                inscriptionNumber: event.returnValues.inscriptionNumber,
+                                transactionHash: event.transactionHash
+                            });
+                        } else if (event.returnValues.operation === 'mint' && amount > 1000) {
+                            console.warn(`Invalid mint detected: ${amount} MONS by ${event.returnValues.user} (Inscription #${event.returnValues.inscriptionNumber})`);
+                        }
+                    });
+
+                    // Use the validated minted amount instead of contract's total
+                    totalMinted = validMinted;
+                    
+                    console.log(`Valid minted: ${validMinted} MONS (${validTransactions.length} valid transactions)`);
+                    console.log(`Contract reported: ${parseInt(web3.utils.fromWei(tokenInfo.minted, 'ether'))} MONS`);
+                    
+                } catch (eventError) {
+                    console.error('Error fetching events:', eventError);
+                    // Fall back to contract data if event fetching fails
+                }
+
+                const remaining = maxSupply - totalMinted;
+                const percentage = maxSupply > 0 ? ((totalMinted / maxSupply) * 100).toFixed(2) : 0;
+
+                document.getElementById('totalMinted').textContent = formatNumber(totalMinted);
+                document.getElementById('mintedAmount').textContent = formatNumber(totalMinted);
                 document.getElementById('remainingAmount').textContent = formatNumber(remaining);
                 document.getElementById('holdersCount').textContent = formatNumber(holdersCount);
                 document.getElementById('mintProgress').textContent = percentage + '%';
@@ -1206,8 +1336,21 @@
                     progressBar.classList.remove('pulse');
                 }
 
+                // Show warning if there are invalid mints detected
+                const contractTotal = parseInt(web3.utils.fromWei(tokenInfo.minted, 'ether'));
+                if (contractTotal !== totalMinted) {
+                    const invalidAmount = contractTotal - totalMinted;
+                    console.warn(`${invalidAmount} MONS from invalid transactions (exceeding 1000 per mint) are not counted`);
+                }
+
             } catch (error) {
                 console.error('Failed to load token data:', error);
+                // Show fallback data
+                document.getElementById('totalMinted').textContent = 'Error';
+                document.getElementById('mintedAmount').textContent = 'Error';
+                document.getElementById('remainingAmount').textContent = 'Error';
+                document.getElementById('holdersCount').textContent = 'Error';
+                document.getElementById('mintProgress').textContent = 'Error';
             }
         }
 
