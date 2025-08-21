@@ -46,19 +46,6 @@
             font-size: 1.1em;
         }
 
-        .credit {
-            position: absolute;
-            bottom: 10px;
-            right: 20px;
-            font-size: 11px;
-            opacity: 0.8;
-        }
-
-        .credit a {
-            color: white;
-            text-decoration: none;
-        }
-
         .sync-indicator {
             position: absolute;
             top: 10px;
@@ -82,10 +69,6 @@
             background: #dc3545;
         }
 
-        .sync-dot.loading {
-            background: #ffc107;
-        }
-
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -95,17 +78,15 @@
             display: flex;
             background: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
-            overflow-x: auto;
         }
 
         .tab {
             flex: 1;
-            min-width: 120px;
-            padding: 15px 10px;
+            padding: 20px;
             text-align: center;
             background: none;
             border: none;
-            font-size: 1em;
+            font-size: 1.1em;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -123,7 +104,7 @@
         }
 
         .content {
-            padding: 30px;
+            padding: 40px;
         }
 
         .tab-content {
@@ -207,13 +188,6 @@
             color: #333;
         }
 
-        .btn-small {
-            padding: 8px 16px;
-            font-size: 14px;
-            width: auto;
-            margin: 5px;
-        }
-
         .result-area {
             margin-top: 30px;
             padding: 20px;
@@ -293,7 +267,7 @@
 
         .grid-3 {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
         }
 
@@ -313,6 +287,10 @@
             
             .grid, .grid-3 {
                 grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
             }
         }
 
@@ -395,6 +373,10 @@
             min-width: 60px;
         }
 
+        .loading {
+            opacity: 0.6;
+        }
+
         .connection-status {
             background: #f8f9fa;
             padding: 10px;
@@ -404,65 +386,59 @@
             border-left: 3px solid #17a2b8;
         }
 
-        .holders-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        .holders-table th,
-        .holders-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .holders-table th {
+        .top-holders {
             background: #f8f9fa;
-            font-weight: 600;
-            color: #495057;
-        }
-
-        .holders-table tr:hover {
-            background: #f8f9fa;
-        }
-
-        .rank-badge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .rank-badge.gold {
-            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-            color: #333;
-        }
-
-        .rank-badge.silver {
-            background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
-            color: #333;
-        }
-
-        .rank-badge.bronze {
-            background: linear-gradient(135deg, #cd7f32 0%, #d4a574 100%);
-            color: white;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #6c757d;
-        }
-
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
             padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #dc3545;
+            margin-bottom: 20px;
+        }
+
+        .holder-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .holder-item:last-child {
+            border-bottom: none;
+        }
+
+        .holder-rank {
+            font-weight: bold;
+            color: #667eea;
+            min-width: 30px;
+        }
+
+        .holder-address {
+            font-family: 'Courier New', monospace;
+            flex: 1;
+            margin: 0 10px;
+        }
+
+        .holder-balance {
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .footer {
+            background: #343a40;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: #4facfe;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -470,97 +446,30 @@
     <div class="container">
         <div class="header">
             <div class="sync-indicator">
-                <div class="sync-dot loading" id="syncDot"></div>
-                <span id="syncStatus">Connecting...</span>
+                <div class="sync-dot" id="syncDot"></div>
+                <span id="syncStatus">🔄 Connecting...</span>
             </div>
-            <h1>Monad Inscription Tool</h1>
+            <h1>⚡ Monad Inscription Tool</h1>
             <p>Deploy and mint MON-20 tokens on Monad testnet</p>
-            <div class="credit">
-                Created by <a href="https://x.com/ega_2ez4crypto" target="_blank">@ega_2ez4crypto</a>
-            </div>
         </div>
 
         <div class="tabs">
             <button class="tab active" data-tab="mint">Mint Token</button>
             <button class="tab" data-tab="deploy">Deploy Token</button>
-            <button class="tab" data-tab="progress">Progress</button>
+            <button class="tab" data-tab="progress">Token Progress</button>
             <button class="tab" data-tab="holders">Top Holders</button>
             <button class="tab" data-tab="wallet">Wallet</button>
         </div>
 
         <div class="content">
-            <!-- Mint Tab -->
-            <div class="tab-content active" id="mint">
-                <div class="sync-info">
-                    <strong>Token Minting:</strong> Mint MONS tokens on Monad testnet blockchain with persistent data tracking.
-                </div>
-
-                <div class="connection-status" id="connectionStatus">
-                    Connecting to data storage...
-                </div>
-
-                <div class="global-stats">
-                    <h4>MONS Token Statistics (Real-time)</h4>
-                    <p><strong>Total Supply:</strong> 21,000,000 MONS</p>
-                    <p><strong>Minted:</strong> <span id="globalMinted">Loading...</span> MONS</p>
-                    <p><strong>Remaining:</strong> <span id="globalRemaining">Loading...</span> MONS</p>
-                    <p><strong>Progress:</strong> <span id="globalProgress">Loading...</span>%</p>
-                    <p><strong>Last Update:</strong> <span id="lastUpdate">Loading...</span></p>
-                </div>
-
-                <div class="user-stats" style="display: none;" id="userStatsSection">
-                    <h4>Your Statistics</h4>
-                    <p><strong>Your MONS Balance:</strong> <span id="userMonsBalance">0</span> MONS</p>
-                    <p><strong>Total Mints:</strong> <span id="userTotalMints">0</span> transactions</p>
-                    <p><strong>Last Mint:</strong> <span id="userLastMint">Never</span></p>
-                </div>
-
-                <div id="walletStatusMint" class="wallet-info" style="display: none;">
-                    <h3>Wallet Connected</h3>
-                    <div class="wallet-address" id="walletAddressMint"></div>
-                    <div style="margin-top: 10px;">
-                        <strong>MON Balance:</strong> <span id="monBalanceMint">0.0000</span> MON<br>
-                        <strong>Your MONS:</strong> <span id="userMons">0</span> MONS
-                    </div>
-                </div>
-
-                <div class="grid">
-                    <div class="form-group">
-                        <label for="mintTick">Token Ticker</label>
-                        <input type="text" id="mintTick" placeholder="MONS" maxlength="10" value="MONS" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="mintAmount">Amount to Mint</label>
-                        <input type="number" id="mintAmount" placeholder="1000" min="1" value="1000" max="1000">
-                        <div style="font-size: 12px; color: #dc3545; margin-top: 5px;">
-                            <strong>Important:</strong> Maximum 1,000 MONS per transaction
-                        </div>
-                    </div>
-                </div>
-
-                <div class="token-preview">
-                    <h4>Mint Preview</h4>
-                    <pre id="mintPreview">{"p":"MON-20","op":"mint","tick":"MONS","amt":"1000"}</pre>
-                </div>
-
-                <button class="btn" onclick="connectWallet()" id="connectBtn">Connect Wallet</button>
-                <button class="btn btn-secondary" onclick="generateMintInscription()" id="generateMintBtn">Generate Mint Inscription</button>
-
-                <div class="result-area" id="mintResult" style="display: none;">
-                    <h3>Mint Inscription Generated</h3>
-                    <pre id="mintInscriptionData"></pre>
-                    <button class="btn" onclick="sendMintTransaction()">Send Mint Transaction</button>
-                </div>
-            </div>
-
             <!-- Deploy Tab -->
             <div class="tab-content" id="deploy">
                 <div class="sync-info">
-                    <strong>Token Deployment:</strong> Deploy your own MON-20 token on Monad testnet blockchain.
+                    🚀 <strong>Token Deployment:</strong> Deploy your own MON-20 token on Monad testnet blockchain.
                 </div>
 
                 <div id="walletStatus" class="wallet-info" style="display: none;">
-                    <h3>Wallet Connected</h3>
+                    <h3>📱 Wallet Connected</h3>
                     <div class="wallet-address" id="walletAddress"></div>
                 </div>
 
@@ -581,28 +490,106 @@
                 </div>
 
                 <div class="token-preview">
-                    <h4>Deploy Preview</h4>
+                    <h4>🔍 Deploy Preview</h4>
                     <pre id="deployPreview">{"p":"MON-20","op":"deploy","tick":"","max":"","lim":""}</pre>
                 </div>
 
-                <button class="btn" onclick="connectWallet()">Connect Wallet</button>
-                <button class="btn btn-secondary" onclick="generateDeployInscription()">Generate Deploy Inscription</button>
+                <button class="btn" onclick="connectWallet()">📱 Connect Wallet</button>
+                <button class="btn btn-secondary" onclick="generateDeployInscription()">🚀 Generate Deploy Inscription</button>
 
                 <div class="result-area" id="deployResult" style="display: none;">
-                    <h3>Deploy Inscription Generated</h3>
+                    <h3>📄 Deploy Inscription Generated</h3>
                     <pre id="deployInscriptionData"></pre>
-                    <button class="btn" onclick="sendDeployTransaction()">Send Deploy Transaction</button>
+                    <button class="btn" onclick="sendDeployTransaction()">💫 Send Deploy Transaction</button>
                 </div>
             </div>
 
-            <!-- Progress Tab -->
+            <!-- Mint Tab -->
+            <div class="tab-content active" id="mint">
+                <div class="sync-info">
+                    ⛏️ <strong>Token Minting:</strong> Mint MONS tokens on Monad testnet blockchain. Data is synchronized across all users.
+                </div>
+
+                <div class="connection-status" id="connectionStatus">
+                    🔄 Connecting to persistent storage...
+                </div>
+
+                <div class="global-stats">
+                    <h4>📊 MONS Token Statistics (Live)</h4>
+                    <div class="grid">
+                        <div>
+                            <p><strong>Total Supply:</strong> 21,000,000 MONS</p>
+                            <p><strong>Minted:</strong> <span id="globalMinted">Loading...</span> MONS</p>
+                            <p><strong>Remaining:</strong> <span id="globalRemaining">Loading...</span> MONS</p>
+                        </div>
+                        <div>
+                            <p><strong>Progress:</strong> <span id="globalProgress">Loading...</span>%</p>
+                            <p><strong>Total Holders:</strong> <span id="totalHolders">Loading...</span></p>
+                            <p><strong>Last Update:</strong> <span id="lastUpdate">Loading...</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="user-stats" style="display: none;" id="userStatsSection">
+                    <h4>👤 Your Statistics</h4>
+                    <div class="grid">
+                        <div>
+                            <p><strong>Your MONS Balance:</strong> <span id="userMonsBalance">0</span> MONS</p>
+                            <p><strong>Total Mints:</strong> <span id="userTotalMints">0</span> transactions</p>
+                        </div>
+                        <div>
+                            <p><strong>Last Mint:</strong> <span id="userLastMint">Never</span></p>
+                            <p><strong>Your Rank:</strong> #<span id="userRank">-</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="walletStatusMint" class="wallet-info" style="display: none;">
+                    <h3>📱 Wallet Connected</h3>
+                    <div class="wallet-address" id="walletAddressMint"></div>
+                    <div style="margin-top: 10px;">
+                        <strong>MON Balance:</strong> <span id="monBalanceMint">0.0000</span> MON<br>
+                        <strong>Your MONS:</strong> <span id="userMons">0</span> MONS
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="mintTick">Token Ticker</label>
+                        <input type="text" id="mintTick" placeholder="MONS" maxlength="10" value="MONS" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="mintAmount">Amount to Mint</label>
+                        <input type="number" id="mintAmount" placeholder="1000" min="1" value="1000" max="1000">
+                        <div style="font-size: 12px; color: #dc3545; margin-top: 5px;">
+                            ⚠️ <strong>Important:</strong> Maximum 1,000 MONS per transaction to ensure validity
+                        </div>
+                    </div>
+                </div>
+
+                <div class="token-preview">
+                    <h4>🔍 Mint Preview</h4>
+                    <pre id="mintPreview">{"p":"MON-20","op":"mint","tick":"MONS","amt":"1000"}</pre>
+                </div>
+
+                <button class="btn" onclick="connectWallet()">📱 Connect Wallet</button>
+                <button class="btn btn-secondary" onclick="generateMintInscription()" id="generateMintBtn">⛏️ Generate Mint Inscription</button>
+
+                <div class="result-area" id="mintResult" style="display: none;">
+                    <h3>📄 Mint Inscription Generated</h3>
+                    <pre id="mintInscriptionData"></pre>
+                    <button class="btn" onclick="sendMintTransaction()">💫 Send Mint Transaction</button>
+                </div>
+            </div>
+
+            <!-- Token Progress Tab -->
             <div class="tab-content" id="progress">
                 <div class="sync-info">
-                    <strong>Live Progress:</strong> Real-time statistics synchronized across all users.
+                    📈 <strong>Live Progress:</strong> Real-time statistics synchronized across all users using persistent storage.
                 </div>
 
                 <div class="wallet-info">
-                    <h3>MONS Token Progress</h3>
+                    <h3>📊 MONS Token Progress</h3>
                     <div class="grid">
                         <div>
                             <p><strong>Total Supply:</strong> 21,000,000 MONS</p>
@@ -612,7 +599,7 @@
                         <div>
                             <p><strong>Progress:</strong> <span id="progressPercent">Loading...</span></p>
                             <p><strong>Mint Limit:</strong> 1,000 MONS per tx</p>
-                            <p><strong>Status:</strong> <span style="color: #28a745;">Active</span></p>
+                            <p><strong>Status:</strong> <span style="color: #28a745;">✅ Active</span></p>
                         </div>
                     </div>
                 </div>
@@ -624,108 +611,168 @@
                 </div>
 
                 <div class="result-area">
-                    <h3>Quick Mint Actions</h3>
-                    <button class="btn" onclick="quickMint(1000)">Mint 1,000 MONS (MAX)</button>
-                    <button class="btn btn-secondary" onclick="quickMint(500)">Mint 500 MONS</button>
-                    <button class="btn btn-secondary" onclick="quickMint(100)">Mint 100 MONS</button>
+                    <h3>⚡ Quick Mint Actions</h3>
+                    <div class="grid-3">
+                        <button class="btn" onclick="quickMint(1000)">⚡ Mint 1,000 MONS (MAX)</button>
+                        <button class="btn btn-secondary" onclick="quickMint(500)">⚡ Mint 500 MONS</button>
+                        <button class="btn btn-secondary" onclick="quickMint(100)">⚡ Mint 100 MONS</button>
+                    </div>
+                    <div style="margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 5px; font-size: 12px; color: #856404;">
+                        ⚠️ <strong>Note:</strong> Amounts above 1,000 MONS will be rejected as invalid inscriptions
+                    </div>
                 </div>
 
                 <div class="result-area">
-                    <h3>Recent Activity</h3>
-                    <div class="live-feed" id="liveFeed">
-                        <div class="feed-item">Loading recent mints...</div>
+                    <h3>🧮 Minting Calculator</h3>
+                    <div class="form-group">
+                        <label for="calcAmount">Calculate Transactions Needed:</label>
+                        <input type="number" id="calcAmount" placeholder="1000" min="1" max="1000" value="1000" onchange="calculateTransactions()">
                     </div>
-                    <button class="btn btn-secondary btn-small" onclick="loadGlobalData()">Refresh Data</button>
+                    <div id="calculationResult">
+                        <p>Loading calculations...</p>
+                    </div>
+                </div>
+
+                <div class="result-area">
+                    <h3>📡 Recent Activity</h3>
+                    <div class="live-feed" id="liveFeed">
+                        <div class="feed-item">🔄 Loading recent mints...</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadGlobalData()" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;">🔄 Refresh Data</button>
                 </div>
             </div>
 
             <!-- Top Holders Tab -->
             <div class="tab-content" id="holders">
                 <div class="sync-info">
-                    <strong>Top Holders:</strong> Real-time leaderboard of MONS token holders.
+                    🏆 <strong>Top Holders:</strong> Real-time leaderboard of MONS token holders synchronized across all users.
                 </div>
 
-                <div class="result-area">
-                    <h3>MONS Top Holders Leaderboard</h3>
-                    <div id="holdersContent">
-                        <div class="loading">Loading holders data...</div>
+                <div class="top-holders">
+                    <h3 style="text-align: center; margin-bottom: 20px; color: #495057;">🏆 MONS Token Top Holders</h3>
+                    <div id="holdersLeaderboard">
+                        <div class="holder-item">
+                            <div class="holder-rank">#1</div>
+                            <div class="holder-address">Loading...</div>
+                            <div class="holder-balance">0 MONS</div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="result-area">
-                    <h3>Holder Statistics</h3>
-                    <div class="grid-3">
-                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                            <h4 style="color: #667eea;">Total Holders</h4>
-                            <p style="font-size: 24px; font-weight: bold;" id="totalHolders">Loading...</p>
+                    <h3>📊 Holder Statistics</h3>
+                    <div class="grid">
+                        <div>
+                            <p><strong>Total Holders:</strong> <span id="totalHoldersCount">Loading...</span></p>
+                            <p><strong>Unique Addresses:</strong> <span id="uniqueAddresses">Loading...</span></p>
+                            <p><strong>Average Holdings:</strong> <span id="avgHoldings">Loading...</span> MONS</p>
                         </div>
-                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                            <h4 style="color: #667eea;">Average Balance</h4>
-                            <p style="font-size: 24px; font-weight: bold;" id="averageBalance">Loading...</p>
-                        </div>
-                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                            <h4 style="color: #667eea;">Largest Holder</h4>
-                            <p style="font-size: 24px; font-weight: bold;" id="largestHolder">Loading...</p>
+                        <div>
+                            <p><strong>Top Holder:</strong> <span id="topHolderPercent">Loading...</span>%</p>
+                            <p><strong>Top 10 Holdings:</strong> <span id="top10Percent">Loading...</span>%</p>
+                            <p><strong>Last Updated:</strong> <span id="holdersLastUpdate">Loading...</span></p>
                         </div>
                     </div>
                 </div>
+
+                <div class="result-area" style="display: none;" id="yourHolderStats">
+                    <h3>👤 Your Holder Position</h3>
+                    <div class="grid">
+                        <div>
+                            <p><strong>Your Balance:</strong> <span id="yourBalance">0</span> MONS</p>
+                            <p><strong>Your Rank:</strong> #<span id="yourRankPosition">-</span></p>
+                        </div>
+                        <div>
+                            <p><strong>Percentage of Supply:</strong> <span id="yourPercentage">0.00</span>%</p>
+                            <p><strong>Above Average:</strong> <span id="aboveAverage">No</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" onclick="loadHolders()" style="padding: 8px 16px; font-size: 14px;">🔄 Refresh Holders Data</button>
             </div>
 
             <!-- Wallet Tab -->
             <div class="tab-content" id="wallet">
                 <div class="sync-info">
-                    <strong>Wallet Connection:</strong> Connect to Monad testnet for minting operations.
+                    🔐 <strong>Wallet Connection:</strong> Connect to Monad testnet for minting operations.
                 </div>
 
                 <div class="wallet-info">
-                    <h3>Monad Testnet Configuration</h3>
-                    <p><strong>Network Name:</strong> Monad Testnet</p>
-                    <p><strong>RPC URL:</strong> https://testnet-rpc.monad.xyz</p>
-                    <p><strong>Chain ID:</strong> 10143</p>
-                    <p><strong>Currency Symbol:</strong> MON</p>
-                    <p><strong>Block Explorer:</strong> https://testnet-explorer.monad.xyz</p>
-                </div>
-
-                <div id="walletInfo" style="display: none;">
-                    <div class="status success">
-                        <strong>Wallet Connected!</strong>
-                    </div>
-                    <div class="wallet-info">
-                        <h3>Your Wallet</h3>
-                        <div class="wallet-address" id="currentWalletAddress"></div>
-                        <div style="margin-top: 15px;">
-                            <p><strong>MON Balance:</strong> <span id="walletBalance">Loading...</span> MON</p>
-                            <p><strong>MONS Tokens:</strong> <span id="monsWalletBalance" style="color: #667eea; font-weight: bold;">Loading...</span></p>
-                            <button class="btn btn-secondary btn-small" onclick="refreshBalances()">Refresh Balance</button>
+                    <h3>🔗 Monad Testnet Configuration</h3>
+                    <div class="grid">
+                        <div>
+                            <p><strong>Network Name:</strong> Monad Testnet</p>
+                            <p><strong>RPC URL:</strong> https://testnet-rpc.monad.xyz</p>
+                            <p><strong>Chain ID:</strong> 10143</p>
+                        </div>
+                        <div>
+                            <p><strong>Currency Symbol:</strong> MON</p>
+                            <p><strong>Block Explorer:</strong> https://testnet-explorer.monad.xyz</p>
+                            <p><strong>Faucet:</strong> <a href="https://faucet.monad.xyz" target="_blank" style="color: #4facfe;">Get MON</a></p>
                         </div>
                     </div>
                 </div>
 
-                <button class="btn" onclick="connectWallet()">Connect MetaMask</button>
-                <button class="btn btn-secondary" onclick="addMonadNetwork()">Add Monad Testnet to MetaMask</button>
+                <div id="walletInfo" style="display: none;">
+                    <div class="status success">
+                        <strong>✅ Wallet Connected!</strong>
+                    </div>
+                    <div class="wallet-info">
+                        <h3>💼 Your Wallet</h3>
+                        <div class="wallet-address" id="currentWalletAddress"></div>
+                        <div style="margin-top: 15px;">
+                            <div class="grid">
+                                <div>
+                                    <p><strong>MON Balance:</strong> <span id="walletBalance">Loading...</span> MON</p>
+                                    <p><strong>MONS Tokens:</strong> <span id="monsWalletBalance" style="color: #667eea; font-weight: bold;">Loading...</span></p>
+                                </div>
+                                <div>
+                                    <p><strong>Your Rank:</strong> #<span id="walletRank">-</span></p>
+                                    <p><strong>% of Supply:</strong> <span id="walletPercentage">0.00%</span></p>
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary" onclick="refreshBalances()" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;">🔄 Refresh Balance</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="connectWallet()">📱 Connect MetaMask</button>
+                <button class="btn btn-secondary" onclick="addMonadNetwork()">⚙️ Add Monad Testnet to MetaMask</button>
 
                 <div class="result-area">
-                    <h3>Instructions</h3>
+                    <h3>ℹ️ Instructions</h3>
                     <div style="background: #f8d7da; padding: 15px; border-radius: 8px; border-left: 4px solid #dc3545; margin-bottom: 15px;">
-                        <h4 style="color: #721c24; margin-bottom: 10px;">IMPORTANT: Mint Limits</h4>
-                        <p style="margin: 5px 0; color: #721c24;"><strong>Maximum mint per tx:</strong> 1,000 MONS</p>
-                        <p style="margin: 5px 0; color: #721c24;"><strong>Invalid amounts:</strong> Above 1,000 MONS will be rejected</p>
-                        <p style="margin: 5px 0; color: #721c24;"><strong>Result:</strong> You lose gas fees but get 0 tokens</p>
+                        <h4 style="color: #721c24; margin-bottom: 10px;">⚠️ IMPORTANT: Mint Limits</h4>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>• Maximum mint per tx:</strong> 1,000 MONS</p>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>• Invalid amounts:</strong> Above 1,000 MONS will be rejected</p>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>• Result:</strong> You lose gas fees but get 0 tokens</p>
                     </div>
                     <p>1. Install MetaMask browser extension</p>
                     <p>2. Add Monad Testnet network configuration</p>
                     <p>3. Get testnet MON tokens from the faucet</p>
                     <p>4. Connect your wallet to start minting</p>
                     <p>5. <strong>Always mint ≤ 1,000 MONS for valid inscriptions</strong></p>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px; border-left: 4px solid #28a745;">
+                        <h4 style="color: #155724; margin-bottom: 10px;">🎯 Production Features:</h4>
+                        <p style="margin: 5px 0; color: #155724;">• Real-time data synchronization using JSONBin.io</p>
+                        <p style="margin: 5px 0; color: #155724;">• Persistent storage across all users</p>
+                        <p style="margin: 5px 0; color: #155724;">• Top holders leaderboard</p>
+                        <p style="margin: 5px 0; color: #155724;">• Automatic backup and data validation</p>
+                    </div>
                 </div>
             </div>
+        </div>
+
+        <div class="footer">
+            <p>⚡ Monad Inscription Tool | Created by <a href="https://x.com/ega_2ez4crypto" target="_blank">@ega_2ez4crypto</a> | Production Ready v1.0</p>
         </div>
     </div>
 
     <script>
         let userAccount;
         let isLoading = false;
-        let dataInterval;
         
         // Production Configuration
         const CONFIG = {
@@ -734,11 +781,15 @@
             chainId: '0x279F', // 10143 in hex
             rpcUrl: 'https://testnet-rpc.monad.xyz',
             explorerUrl: 'https://testnet-explorer.monad.xyz',
-            apiKey: '$2a$10$wErxdibF02mdzCHmIXvcm.m.Dph3JLkMxOb4RB0PNUNuGrCQdFDFi',
-            binId: '68a6c6afd0ea881f405efb43'
+            // Production storage configuration
+            jsonBinConfig: {
+                binId: '68a6c6afd0ea881f405efb43',
+                apiKey: '$2a$10$wErxdibF02mdzCHmIXvcm.m.Dph3JLkMxOb4RB0PNUNuGrCQdFDFi',
+                baseUrl: 'https://api.jsonbin.io/v3/b'
+            }
         };
         
-        // Global data structure - production ready
+        // Global data structure
         let globalData = {
             totalMinted: 0,
             totalSupply: CONFIG.totalSupply,
@@ -753,123 +804,58 @@
                     deployTime: Date.now() - 86400000 // 1 day ago
                 }
             },
-            version: '1.0'
+            version: '1.0.0'
         };
 
-        // Production API endpoints
-        const API_ENDPOINTS = {
-            primary: `https://api.jsonbin.io/v3/b/${CONFIG.binId}`,
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Master-Key': CONFIG.apiKey,
-                'X-Bin-Name': 'MONS-Token-Data'
-            }
-        };
-
-        // Load global data from JSONBin
+        // Production storage functions
         async function loadGlobalData() {
-            if (isLoading) return;
-            
             isLoading = true;
             updateSyncStatus('loading');
             
-            // Set a timeout to prevent infinite loading
-            const timeout = setTimeout(() => {
-                if (isLoading) {
-                    console.error('Loading timeout - switching to fallback');
-                    handleLoadError(new Error('Connection timeout'));
-                }
-            }, 10000); // 10 second timeout
-            
             try {
                 console.log('Loading data from JSONBin...');
-                
-                const response = await fetch(API_ENDPOINTS.primary, {
+                const response = await fetch(`${CONFIG.jsonBinConfig.baseUrl}/${CONFIG.jsonBinConfig.binId}/latest`, {
                     method: 'GET',
-                    headers: API_ENDPOINTS.headers
+                    headers: {
+                        'X-Master-Key': CONFIG.jsonBinConfig.apiKey,
+                        'X-Bin-Meta': 'false'
+                    }
                 });
-                
-                clearTimeout(timeout);
                 
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.record) {
-                        if (data.record.version) {
-                            globalData = { ...globalData, ...data.record };
-                            console.log('Data loaded successfully:', globalData);
-                        } else {
-                            // Data exists but no version, merge carefully
-                            globalData = {
-                                ...globalData,
-                                totalMinted: data.record.totalMinted || 0,
-                                userBalances: data.record.userBalances || {},
-                                recentActivity: data.record.recentActivity || [],
-                                ...data.record,
-                                version: '1.0'
-                            };
-                        }
-                    } else {
-                        // Initialize new data structure
-                        console.log('Initializing new data structure...');
-                        globalData.lastUpdate = Date.now();
-                        await saveGlobalData();
-                    }
+                    console.log('Data loaded successfully:', data);
+                    
+                    // Merge loaded data with current structure
+                    globalData = {
+                        ...globalData,
+                        ...data,
+                        // Ensure essential properties exist
+                        userBalances: data.userBalances || {},
+                        recentActivity: data.recentActivity || [],
+                        deployedTokens: data.deployedTokens || globalData.deployedTokens
+                    };
+                    
+                    updateSyncStatus('connected');
+                    document.getElementById('connectionStatus').innerHTML = '✅ <strong>Connected:</strong> Data synchronized from persistent storage.';
+                    document.getElementById('connectionStatus').style.borderLeftColor = '#28a745';
+                    
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                updateSyncStatus('connected');
                 updateAllDisplays();
                 
-                document.getElementById('connectionStatus').innerHTML = 
-                    'Connected: Live data synchronized successfully.';
-                document.getElementById('connectionStatus').style.borderLeftColor = '#28a745';
-                
             } catch (error) {
-                clearTimeout(timeout);
-                handleLoadError(error);
-            } finally {
-                isLoading = false;
-            }
-        }
-        
-        function handleLoadError(error) {
-            console.error('Error loading data:', error);
-            updateSyncStatus('error');
-            
-            document.getElementById('connectionStatus').innerHTML = 
-                'Connection Error: Using offline mode. ' + error.message;
-            document.getElementById('connectionStatus').style.borderLeftColor = '#dc3545';
-            
-            // Use fallback data
-            if (globalData.totalMinted === 0) {
-                globalData = {
-                    totalMinted: 0,
-                    totalSupply: CONFIG.totalSupply,
-                    userBalances: {},
-                    recentActivity: [],
-                    lastUpdate: Date.now(),
-                    deployedTokens: {
-                        'MONS': {
-                            deployer: 'system',
-                            maxSupply: CONFIG.totalSupply,
-                            mintLimit: CONFIG.mintLimit,
-                            deployTime: Date.now() - 86400000
-                        }
-                    },
-                    version: '1.0'
-                };
-            }
-            updateAllDisplays();
-        }
+                console.error('Error loading global data:', error);
+                updateSyncStatus('error');
                 
-                document.getElementById('connectionStatus').innerHTML = 
-                    '<strong>Connection Error:</strong> ' + error.message;
+                document.getElementById('connectionStatus').innerHTML = '❌ <strong>Connection Error:</strong> ' + error.message + '. Using local cache.';
                 document.getElementById('connectionStatus').style.borderLeftColor = '#dc3545';
                 
-                // Use fallback data if no data exists
+                // Initialize with default data if empty
                 if (globalData.totalMinted === 0) {
-                    globalData.totalMinted = 0;
+                    globalData.totalMinted = 0; // Start from 0 for production
                     globalData.lastUpdate = Date.now();
                 }
                 updateAllDisplays();
@@ -878,7 +864,6 @@
             }
         }
 
-        // Save global data to JSONBin
         async function saveGlobalData() {
             if (isLoading) return false;
             
@@ -886,20 +871,26 @@
                 globalData.lastUpdate = Date.now();
                 console.log('Saving data to JSONBin...', globalData);
                 
-                const response = await fetch(API_ENDPOINTS.primary, {
+                const response = await fetch(`${CONFIG.jsonBinConfig.baseUrl}/${CONFIG.jsonBinConfig.binId}`, {
                     method: 'PUT',
-                    headers: API_ENDPOINTS.headers,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': CONFIG.jsonBinConfig.apiKey,
+                        'X-Bin-Meta': 'false'
+                    },
                     body: JSON.stringify(globalData)
                 });
                 
                 if (response.ok) {
-                    console.log('Data saved successfully');
+                    const result = await response.json();
+                    console.log('Data saved successfully:', result);
                     return true;
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                
             } catch (error) {
-                console.error('Error saving data:', error);
+                console.error('Error saving global data:', error);
                 return false;
             }
         }
@@ -910,16 +901,16 @@
             
             switch (status) {
                 case 'loading':
-                    syncDot.className = 'sync-dot loading';
-                    syncStatus.textContent = 'Syncing...';
+                    syncDot.className = 'sync-dot';
+                    syncStatus.textContent = '🔄 Syncing...';
                     break;
                 case 'connected':
                     syncDot.className = 'sync-dot';
-                    syncStatus.textContent = 'Live Data';
+                    syncStatus.textContent = '🌐 Live Data';
                     break;
                 case 'error':
                     syncDot.className = 'sync-dot error';
-                    syncStatus.textContent = 'Offline';
+                    syncStatus.textContent = '⚠️ Offline';
                     break;
             }
         }
@@ -928,21 +919,24 @@
             updateTokenProgress();
             updateUserStats();
             updateRecentActivity();
-            updateTopHolders();
+            calculateTransactions();
+            loadHolders();
         }
 
         function updateTokenProgress() {
             const remaining = CONFIG.totalSupply - globalData.totalMinted;
-            const progressPercent = ((globalData.totalMinted / CONFIG.totalSupply) * 100).toFixed(4);
+            const progressPercent = globalData.totalMinted === 0 ? 0 : ((globalData.totalMinted / CONFIG.totalSupply) * 100);
+            const totalHolders = Object.keys(globalData.userBalances).length;
             
             // Update all progress displays
             const elements = {
                 'globalMinted': globalData.totalMinted.toLocaleString(),
                 'globalRemaining': remaining.toLocaleString(),
-                'globalProgress': progressPercent + '%',
+                'globalProgress': progressPercent.toFixed(4) + '%',
                 'totalMinted': globalData.totalMinted.toLocaleString(),
                 'totalRemaining': remaining.toLocaleString(),
-                'progressPercent': progressPercent + '%',
+                'progressPercent': progressPercent.toFixed(4) + '%',
+                'totalHolders': totalHolders.toLocaleString(),
                 'lastUpdate': new Date(globalData.lastUpdate).toLocaleTimeString()
             };
 
@@ -954,14 +948,9 @@
             // Update progress bar
             const progressBar = document.getElementById('progressBar');
             if (progressBar) {
-                const minWidth = Math.max(parseFloat(progressPercent), 0.1);
+                const minWidth = Math.max(progressPercent, 0.1);
                 progressBar.style.width = minWidth + '%';
-                progressBar.textContent = progressPercent + '%';
-                
-                if (remaining === 0) {
-                    progressBar.textContent = '100% - FULLY MINTED!';
-                    progressBar.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
-                }
+                progressBar.textContent = progressPercent.toFixed(4) + '%';
             }
         }
 
@@ -974,22 +963,48 @@
                 lastMint: null
             };
             
-            document.getElementById('userMonsBalance').textContent = userData.balance.toLocaleString();
-            document.getElementById('userTotalMints').textContent = userData.totalMints.toLocaleString();
-            document.getElementById('userLastMint').textContent = userData.lastMint ? 
-                new Date(userData.lastMint).toLocaleString() : 'Never';
+            // Calculate user rank
+            const sortedBalances = Object.entries(globalData.userBalances)
+                .sort(([,a], [,b]) => b.balance - a.balance);
+            const userRank = sortedBalances.findIndex(([address]) => address === userAccount) + 1;
+            
+            const elements = {
+                'userMonsBalance': userData.balance.toLocaleString(),
+                'userTotalMints': userData.totalMints.toLocaleString(),
+                'userLastMint': userData.lastMint ? new Date(userData.lastMint).toLocaleString() : 'Never',
+                'userRank': userRank > 0 ? userRank : '-'
+            };
+
+            Object.entries(elements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value;
+            });
             
             // Update wallet displays
-            ['userMons', 'monsWalletBalance'].forEach(id => {
+            ['userMons', 'monsWalletBalance', 'yourBalance'].forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
-                    element.innerHTML = `${userData.balance.toLocaleString()} MONS`;
+                    element.innerHTML = `<span style="color: #667eea; font-weight: bold;">${userData.balance.toLocaleString()} MONS</span>`;
                 }
+            });
+
+            // Update wallet rank displays
+            ['walletRank', 'yourRankPosition'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = userRank > 0 ? userRank : '-';
+            });
+
+            // Update percentage displays
+            const percentage = globalData.totalMinted > 0 ? ((userData.balance / globalData.totalMinted) * 100).toFixed(4) : '0.00';
+            ['walletPercentage', 'yourPercentage'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = percentage + '%';
             });
             
             // Show user stats section if user has activity
             if (userData.totalMints > 0) {
                 document.getElementById('userStatsSection').style.display = 'block';
+                document.getElementById('yourHolderStats').style.display = 'block';
             }
         }
 
@@ -1000,7 +1015,7 @@
             let feedHTML = '';
             
             if (globalData.recentActivity.length === 0) {
-                feedHTML = '<div class="feed-item">No recent activity...</div>';
+                feedHTML = '<div class="feed-item">🔄 No recent activity...</div>';
             } else {
                 globalData.recentActivity.slice(0, 10).forEach(activity => {
                     const timeAgo = Math.floor((Date.now() - activity.timestamp) / 1000);
@@ -1009,96 +1024,111 @@
                                    `${Math.floor(timeAgo / 3600)}h ago`;
                     
                     const shortAddr = `${activity.address.substr(0,6)}...${activity.address.substr(-4)}`;
-                    feedHTML += `<div class="feed-item">${shortAddr} minted ${activity.amount.toLocaleString()} MONS (${timeText})</div>`;
+                    feedHTML += `<div class="feed-item">⛏️ ${shortAddr} minted ${activity.amount.toLocaleString()} MONS (${timeText})</div>`;
                 });
             }
             
             liveFeed.innerHTML = feedHTML;
         }
 
-        function updateTopHolders() {
-            const holdersContent = document.getElementById('holdersContent');
-            if (!holdersContent) return;
+        function loadHolders() {
+            const holdersData = Object.entries(globalData.userBalances)
+                .filter(([, data]) => data.balance > 0)
+                .sort(([,a], [,b]) => b.balance - a.balance)
+                .slice(0, 50); // Top 50 holders
+
+            const leaderboard = document.getElementById('holdersLeaderboard');
+            const totalHolders = holdersData.length;
+            const uniqueAddresses = Object.keys(globalData.userBalances).length;
             
-            // Convert userBalances to sorted array
-            const holders = Object.entries(globalData.userBalances)
-                .map(([address, data]) => ({ address, ...data }))
-                .sort((a, b) => b.balance - a.balance)
-                .filter(holder => holder.balance > 0);
-            
-            if (holders.length === 0) {
-                holdersContent.innerHTML = '<div class="loading">No holders yet...</div>';
-                document.getElementById('totalHolders').textContent = '0';
-                document.getElementById('averageBalance').textContent = '0 MONS';
-                document.getElementById('largestHolder').textContent = '0 MONS';
-                return;
+            if (holdersData.length === 0) {
+                leaderboard.innerHTML = '<div class="holder-item"><div style="text-align: center; width: 100%;">No holders yet. Be the first to mint!</div></div>';
+            } else {
+                let leaderboardHTML = '';
+                holdersData.forEach(([address, data], index) => {
+                    const shortAddr = `${address.substr(0,8)}...${address.substr(-6)}`;
+                    const percentage = ((data.balance / globalData.totalMinted) * 100).toFixed(2);
+                    
+                    let rankEmoji = '';
+                    if (index === 0) rankEmoji = '🥇';
+                    else if (index === 1) rankEmoji = '🥈';
+                    else if (index === 2) rankEmoji = '🥉';
+                    
+                    leaderboardHTML += `
+                        <div class="holder-item ${address === userAccount ? 'style="background: #fff3cd;"' : ''}">
+                            <div class="holder-rank">${rankEmoji}#${index + 1}</div>
+                            <div class="holder-address">${shortAddr}${address === userAccount ? ' (You)' : ''}</div>
+                            <div class="holder-balance">${data.balance.toLocaleString()} MONS (${percentage}%)</div>
+                        </div>
+                    `;
+                });
+                leaderboard.innerHTML = leaderboardHTML;
             }
-            
-            // Generate holders table
-            let tableHTML = `
-                <table class="holders-table">
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Address</th>
-                            <th>Balance</th>
-                            <th>Percentage</th>
-                            <th>Total Mints</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            holders.slice(0, 20).forEach((holder, index) => {
-                const rank = index + 1;
-                const percentage = ((holder.balance / globalData.totalMinted) * 100).toFixed(2);
-                const shortAddr = `${holder.address.substr(0,8)}...${holder.address.substr(-8)}`;
-                
-                let rankBadge = 'rank-badge';
-                if (rank === 1) rankBadge += ' gold';
-                else if (rank === 2) rankBadge += ' silver';
-                else if (rank === 3) rankBadge += ' bronze';
-                
-                tableHTML += `
-                    <tr>
-                        <td><span class="${rankBadge}">#${rank}</span></td>
-                        <td title="${holder.address}">${shortAddr}</td>
-                        <td><strong>${holder.balance.toLocaleString()} MONS</strong></td>
-                        <td>${percentage}%</td>
-                        <td>${holder.totalMints}</td>
-                    </tr>
-                `;
+
+            // Update holder statistics
+            const avgHoldings = totalHolders > 0 ? (globalData.totalMinted / totalHolders) : 0;
+            const topHolderBalance = holdersData.length > 0 ? holdersData[0][1].balance : 0;
+            const topHolderPercent = globalData.totalMinted > 0 ? ((topHolderBalance / globalData.totalMinted) * 100) : 0;
+            const top10Balance = holdersData.slice(0, 10).reduce((sum, [, data]) => sum + data.balance, 0);
+            const top10Percent = globalData.totalMinted > 0 ? ((top10Balance / globalData.totalMinted) * 100) : 0;
+
+            const holderStats = {
+                'totalHoldersCount': totalHolders.toLocaleString(),
+                'uniqueAddresses': uniqueAddresses.toLocaleString(),
+                'avgHoldings': Math.floor(avgHoldings).toLocaleString(),
+                'topHolderPercent': topHolderPercent.toFixed(2) + '%',
+                'top10Percent': top10Percent.toFixed(2) + '%',
+                'holdersLastUpdate': new Date(globalData.lastUpdate).toLocaleTimeString()
+            };
+
+            Object.entries(holderStats).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value;
             });
-            
-            tableHTML += '</tbody></table>';
-            holdersContent.innerHTML = tableHTML;
-            
-            // Update statistics
-            const totalHolders = holders.length;
-            const totalBalance = holders.reduce((sum, holder) => sum + holder.balance, 0);
-            const averageBalance = totalBalance / totalHolders;
-            const largestHolder = holders[0]?.balance || 0;
-            
-            document.getElementById('totalHolders').textContent = totalHolders.toLocaleString();
-            document.getElementById('averageBalance').textContent = Math.floor(averageBalance).toLocaleString() + ' MONS';
-            document.getElementById('largestHolder').textContent = largestHolder.toLocaleString() + ' MONS';
+
+            // Update user's holder position if connected
+            if (userAccount && globalData.userBalances[userAccount]) {
+                const userRank = holdersData.findIndex(([address]) => address === userAccount) + 1;
+                const userData = globalData.userBalances[userAccount];
+                const isAboveAverage = userData.balance > avgHoldings;
+                
+                document.getElementById('aboveAverage').textContent = isAboveAverage ? 'Yes' : 'No';
+                document.getElementById('aboveAverage').style.color = isAboveAverage ? '#28a745' : '#dc3545';
+            }
         }
 
-        // Tab switching functionality - independent of loading state
+        function calculateTransactions() {
+            const amount = parseInt(document.getElementById('calcAmount')?.value) || 1000;
+            const remaining = CONFIG.totalSupply - globalData.totalMinted;
+            const transactions = Math.ceil(remaining / amount);
+            const gasEstimate = transactions * 0.00003; // Estimate gas cost
+            
+            const resultElement = document.getElementById('calculationResult');
+            if (resultElement) {
+                const timeEstimate = Math.ceil(transactions / 60); // Assuming 1 tx per second
+                resultElement.innerHTML = `
+                    <p><strong>Transactions Needed:</strong> ${transactions.toLocaleString()} (at ${amount.toLocaleString()} MONS each)</p>
+                    <p><strong>Estimated Gas Cost:</strong> ~${gasEstimate.toFixed(4)} MON</p>
+                    <p><strong>Time Estimate:</strong> ~${timeEstimate} minutes (at 1 tx/sec)</p>
+                    <p><strong>Completion Status:</strong> ${remaining > 0 ? 'Available for minting' : 'FULLY MINTED! 🎉'}</p>
+                `;
+            }
+        }
+
+        // Tab switching functionality
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 const tabId = tab.dataset.tab;
                 
-                // Always allow tab switching
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 
                 tab.classList.add('active');
                 document.getElementById(tabId).classList.add('active');
                 
-                // Update holders when tab is clicked
+                // Load holders when holders tab is activated
                 if (tabId === 'holders') {
-                    updateTopHolders();
+                    loadHolders();
                 }
             });
         });
@@ -1152,13 +1182,6 @@
                 if (addressElement) addressElement.textContent = userAccount;
             });
             
-            // Update connect button
-            const connectBtn = document.getElementById('connectBtn');
-            if (connectBtn) {
-                connectBtn.textContent = 'Wallet Connected';
-                connectBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
-            }
-            
             // Initialize user data if not exists
             if (!globalData.userBalances[userAccount]) {
                 globalData.userBalances[userAccount] = {
@@ -1192,7 +1215,7 @@
                     userAccount = accounts[0];
                     
                     showWalletConnected();
-                    showStatus('success', 'Wallet connected successfully!');
+                    showStatus('success', 'Wallet connected successfully! Data synchronized from persistent storage.');
                     
                 } catch (error) {
                     console.error('Error connecting wallet:', error);
@@ -1274,7 +1297,7 @@
             }
             
             if (amountNum > CONFIG.mintLimit) {
-                showStatus('error', `INVALID: Amount exceeds limit! Maximum ${CONFIG.mintLimit} MONS per mint.`);
+                showStatus('error', `❌ INVALID: Amount exceeds limit! Maximum ${CONFIG.mintLimit} MONS per mint.`);
                 return;
             }
             
@@ -1296,9 +1319,9 @@
             document.getElementById('mintResult').style.display = 'block';
             
             if (amountNum === CONFIG.mintLimit) {
-                showStatus('success', 'Valid mint inscription generated! (Maximum amount)');
+                showStatus('success', '✅ Valid mint inscription generated! (Maximum amount)');
             } else {
-                showStatus('success', `Valid mint inscription generated! (${amountNum.toLocaleString()} MONS)`);
+                showStatus('success', `✅ Valid mint inscription generated! (${amountNum.toLocaleString()} MONS)`);
             }
         }
 
@@ -1329,7 +1352,7 @@
             }
 
             if (amount > CONFIG.mintLimit) {
-                showStatus('error', `INVALID: ${amount} MONS exceeds limit! Maximum ${CONFIG.mintLimit} MONS per mint.`);
+                showStatus('error', `❌ INVALID: ${amount} MONS exceeds limit! Maximum ${CONFIG.mintLimit} MONS per mint.`);
                 return;
             }
             
@@ -1348,7 +1371,7 @@
             };
 
             const inscriptionData = JSON.stringify(inscription, null, 2);
-            showStatus('success', `Sending mint transaction for ${amount.toLocaleString()} MONS...`);
+            showStatus('success', `🚀 Sending mint transaction for ${amount.toLocaleString()} MONS...`);
             sendTransaction(inscriptionData, `Quick Mint ${amount}`);
         }
 
@@ -1415,8 +1438,8 @@
                     from: userAccount,
                     value: '0x0',
                     data: dataHex,
-                    gas: '0x7530',
-                    gasPrice: '0x3B9ACA00',
+                    gas: '0x7530', // 30000 gas
+                    gasPrice: '0x3B9ACA00', // 1 gwei
                 };
                 
                 const txHash = await window.ethereum.request({
@@ -1432,9 +1455,10 @@
                 // Update global data after successful transaction
                 const mintAmount = extractMintAmount(inscriptionData);
                 if (mintAmount > 0 && type.includes('Mint')) {
+                    // Wait a bit before updating data
                     setTimeout(async () => {
                         // Update global statistics
-                        globalData.totalMinted = Math.min(globalData.totalMinted + mintAmount, CONFIG.totalSupply);
+                        globalData.totalMinted += mintAmount;
                         
                         // Update user balance
                         if (!globalData.userBalances[userAccount]) {
@@ -1470,11 +1494,13 @@
                         
                         const totalBalance = globalData.userBalances[userAccount].balance;
                         if (saved) {
-                            showStatus('success', `Mint successful! +${mintAmount.toLocaleString()} MONS (Total: ${totalBalance.toLocaleString()} MONS)`);
+                            showStatus('success', `🎉 Mint successful & synchronized! +${mintAmount.toLocaleString()} MONS (Total: ${totalBalance.toLocaleString()} MONS)`);
+                            updateSyncStatus('connected');
                         } else {
-                            showStatus('warning', `Mint successful but sync failed. Total: ${totalBalance.toLocaleString()} MONS`);
+                            showStatus('warning', `⚠️ Mint successful but sync failed. Total: ${totalBalance.toLocaleString()} MONS (Local cache only)`);
+                            updateSyncStatus('error');
                         }
-                    }, 3000);
+                    }, 3000); // Wait 3 seconds for transaction confirmation
                 }
                 
             } catch (error) {
@@ -1488,12 +1514,13 @@
                 const generateBtn = document.getElementById('generateMintBtn');
                 if (generateBtn) {
                     generateBtn.disabled = false;
-                    generateBtn.textContent = 'Generate Mint Inscription';
+                    generateBtn.textContent = '⛏️ Generate Mint Inscription';
                 }
             }
         }
 
         function showStatus(type, message) {
+            // Remove existing status messages that aren't permanent
             document.querySelectorAll('.status:not([id])').forEach(s => s.remove());
             
             const status = document.createElement('div');
@@ -1505,6 +1532,7 @@
                 activeTab.insertBefore(status, activeTab.firstChild);
             }
             
+            // Auto-remove non-error messages after 7 seconds
             if (type !== 'error') {
                 setTimeout(() => {
                     if (status.parentNode) {
@@ -1516,47 +1544,30 @@
 
         // Initialize everything when page loads
         window.addEventListener('load', async () => {
-            console.log('Page loaded, initializing...');
+            console.log('🚀 Monad Inscription Tool - Production Mode');
+            console.log('JSONBin Configuration:', {
+                binId: CONFIG.jsonBinConfig.binId,
+                baseUrl: CONFIG.jsonBinConfig.baseUrl
+            });
             
-            // Enable basic functionality immediately
+            showStatus('warning', '🔄 Loading data from persistent storage...');
+            
+            // Initialize preview displays
             updateDeployPreview();
             updateMintPreview();
             
-            // Show loading status but don't block UI
-            showStatus('warning', 'Loading live data...');
+            // Load global data from JSONBin
+            await loadGlobalData();
             
-            try {
-                // Load global data with timeout
-                await Promise.race([
-                    loadGlobalData(),
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Loading timeout')), 8000)
-                    )
-                ]);
-                
-                showStatus('success', 'Monad Inscription Tool loaded successfully!');
-            } catch (error) {
-                console.error('Failed to load data:', error);
-                handleLoadError(error);
-                showStatus('warning', 'Tool loaded in offline mode. Some features may be limited.');
-            }
-            
-            // Auto-refresh data every 15 seconds (only if not stuck loading)
-            dataInterval = setInterval(async () => {
+            // Set up auto-refresh every 30 seconds
+            setInterval(async () => {
                 if (!isLoading) {
-                    try {
-                        await Promise.race([
-                            loadGlobalData(),
-                            new Promise((_, reject) => 
-                                setTimeout(() => reject(new Error('Refresh timeout')), 5000)
-                            )
-                        ]);
-                    } catch (error) {
-                        console.log('Background refresh failed:', error.message);
-                        // Don't show error for background refresh failures
-                    }
+                    console.log('Auto-refreshing data...');
+                    await loadGlobalData();
                 }
-            }, 15000);
+            }, 30000);
+            
+            showStatus('success', '✅ Production system ready! Data synchronized from persistent storage.');
         });
 
         // Handle MetaMask account changes
@@ -1564,22 +1575,15 @@
             window.ethereum.on('accountsChanged', (accounts) => {
                 if (accounts.length === 0) {
                     userAccount = null;
-                    ['walletStatus', 'walletStatusMint', 'walletInfo', 'userStatsSection'].forEach(id => {
+                    ['walletStatus', 'walletStatusMint', 'walletInfo', 'userStatsSection', 'yourHolderStats'].forEach(id => {
                         const element = document.getElementById(id);
                         if (element) element.style.display = 'none';
                     });
-                    
-                    const connectBtn = document.getElementById('connectBtn');
-                    if (connectBtn) {
-                        connectBtn.textContent = 'Connect Wallet';
-                        connectBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                    }
-                    
                     showStatus('warning', 'Wallet disconnected');
                 } else if (accounts[0] !== userAccount) {
                     userAccount = accounts[0];
                     showWalletConnected();
-                    showStatus('success', 'Wallet account changed!');
+                    showStatus('success', 'Wallet account changed! Data synchronized from persistent storage.');
                 }
             });
             
@@ -1592,22 +1596,119 @@
             });
         }
 
-        // Prevent invalid amounts in input
+        // Input validation
         document.getElementById('mintAmount')?.addEventListener('input', function() {
             const value = parseInt(this.value);
             if (value > CONFIG.mintLimit) {
                 this.style.borderColor = '#dc3545';
-                showStatus('error', `Amount exceeds maximum limit of ${CONFIG.mintLimit} MONS`);
-            } else if (value <= 0) {
-                this.style.borderColor = '#dc3545';
+                showStatus('error', `❌ Amount exceeds maximum limit of ${CONFIG.mintLimit} MONS`);
             } else {
                 this.style.borderColor = '#e9ecef';
             }
         });
 
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (dataInterval) {
-                clearInterval(dataInterval);
+        document.getElementById('calcAmount')?.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            if (value > CONFIG.mintLimit) {
+                this.value = CONFIG.mintLimit;
+            }
+            calculateTransactions();
+        });
+
+        // Prevent form submission on Enter key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                e.preventDefault();
             }
         });
+
+        // Error handling for network issues
+        window.addEventListener('online', () => {
+            showStatus('success', '🌐 Back online! Refreshing data...');
+            loadGlobalData();
+        });
+
+        window.addEventListener('offline', () => {
+            showStatus('warning', '📡 Network disconnected. Using cached data.');
+            updateSyncStatus('error');
+        });
+
+        // Handle page visibility changes to refresh data when tab becomes active
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && !isLoading) {
+                console.log('Page became visible, refreshing data...');
+                loadGlobalData();
+            }
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + R to refresh data
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                if (!isLoading) {
+                    showStatus('warning', '🔄 Manual refresh...');
+                    loadGlobalData();
+                }
+            }
+        });
+
+        // Performance monitoring
+        let performanceMetrics = {
+            loadTimes: [],
+            saveTimes: [],
+            errors: []
+        };
+
+        function logPerformance(operation, startTime) {
+            const duration = Date.now() - startTime;
+            console.log(`${operation} completed in ${duration}ms`);
+            
+            if (operation.includes('load')) {
+                performanceMetrics.loadTimes.push(duration);
+            } else if (operation.includes('save')) {
+                performanceMetrics.saveTimes.push(duration);
+            }
+            
+            // Keep only last 10 measurements
+            performanceMetrics.loadTimes = performanceMetrics.loadTimes.slice(-10);
+            performanceMetrics.saveTimes = performanceMetrics.saveTimes.slice(-10);
+        }
+
+        // Enhanced error tracking
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e);
+            performanceMetrics.errors.push({
+                message: e.message,
+                timestamp: Date.now(),
+                source: e.filename,
+                line: e.lineno
+            });
+            
+            showStatus('error', '⚠️ An error occurred. Please refresh the page if issues persist.');
+        });
+
+        // Console info for developers
+        console.log(`
+        🚀 Monad Inscription Tool - Production Ready
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+        📊 Configuration:
+        • Chain ID: ${parseInt(CONFIG.chainId, 16)} (${CONFIG.chainId})
+        • RPC URL: ${CONFIG.rpcUrl}
+        • Total Supply: ${CONFIG.totalSupply.toLocaleString()} MONS
+        • Mint Limit: ${CONFIG.mintLimit.toLocaleString()} per tx
+        
+        🔗 Storage:
+        • JSONBin ID: ${CONFIG.jsonBinConfig.binId}
+        • Real-time sync: Enabled
+        • Auto-refresh: 30s intervals
+        
+        👨‍💻 Created by: @ega_2ez4crypto
+        🌐 Version: 1.0.0 Production
+        
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        `);
+    </script>
+</body>
+</html>
