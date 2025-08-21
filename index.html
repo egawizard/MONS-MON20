@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MONAD MON-20 • Inscription Indexer & Minter</title>
+  <title>MONAD MON-20 • Explorer & Minter</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.2/web3.min.js"></script>
   <style>
     :root{
@@ -36,7 +36,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="title">MONAD MON-20</div>
+    <div class="title">MONAD MON-20 Explorer & Minter</div>
     <div id="subtitle" class="subtitle">The First Inscription Token on MONAD Testnet ($MONS)</div>
 
     <div class="stats">
@@ -47,14 +47,12 @@
     </div>
 
     <div class="progress"><div id="progressFill" class="bar"></div></div>
-    <div id="scanStatus" class="status">Connecting RPC…</div>
+    <div id="scanStatus" class="status">Loading data from API…</div>
     <div id="lastBlock" class="status">Last synced block: -</div>
 
     <div class="row">
       <button id="connectBtn" class="secondary" onclick="connectWallet()">Connect Wallet</button>
       <button id="mintBtn" onclick="mintToken()" disabled>Mint 1000 MONS</button>
-      <button id="resyncBtn" class="secondary" onclick="forceResync()">Resync from Deploy</button>
-      <button id="clearCacheBtn" class="secondary" onclick="clearCache()">Clear Cache</button>
       <span id="addrPill" class="pill mono" style="display:none"></span>
     </div>
 
@@ -65,66 +63,57 @@
 
     <div class="footer">
       Created by <a href="https://x.com/ega_2ez4crypto" target="_blank" style="color:var(--accent)">@ega_2ez4crypto</a><br/>
-      Fully decentralized • No database • All data onchain
+      Fully decentralized • Indexed via Railway • Mint onchain
     </div>
   </div>
 
 <script>
-/***********************
- * MON-20 PARAMETERS
- ************************/
-const MONAD = {
-  chainId: 10143,
-  rpcUrl: 'https://rpc.ankr.com/monad_testnet'
-};
-const TICK = 'MONS';
-const MAX_SUPPLY = 21_000_000;
-const MINT_LIMIT = 1_000;
-const DEPLOY_BLOCK = 32111409;
-const SCAN_BATCH = 150;
+const API = "https://mon20-indexer-backend-production.up.railway.app";
+const MONAD = { chainId: 10143, rpcUrl: "https://testnet-rpc.monad.xyz" };
+const TICK = "MONS";
+const MINT_LIMIT = 1000;
 
-let web3Read;
-let web3Wallet = null;
 let currentAccount = null;
+let web3Wallet = null;
 
-const state = {
-  totalMinted: 0,
-  mintCount: 0,
-  holders: new Map(),
-  lastProcessed: DEPLOY_BLOCK - 1
-};
-
-window.addEventListener('load', async () => {
-  web3Read = new Web3(MONAD.rpcUrl);
-  setScanStatus('RPC connected. Indexing chain…');
-  const loaded = loadCache();
-  if (!loaded) {
-    state.lastProcessed = DEPLOY_BLOCK - 1;
+// --- API: Stats ---
+async function loadStats() {
+  try {
+    const stats = await fetch(`${API}/stats`).then(r => r.json());
+    document.getElementById('totalMinted').innerText = stats.totalMinted.toLocaleString();
+    document.getElementById('mintCount').innerText = stats.mintCount.toLocaleString();
+    document.getElementById('holders').innerText = stats.holders.toLocaleString();
+    document.getElementById('remaining').innerText = (21000000 - stats.totalMinted).toLocaleString();
+    document.getElementById('progressFill').style.width = Math.min(100, (stats.totalMinted / 21000000) * 100) + '%';
+    document.getElementById('lastBlock').innerText = `Last synced block: ${stats.lastBlock.toLocaleString()}`;
+    document.getElementById('scanStatus').innerText = "Data fetched from API ✅";
+  } catch (err) {
+    document.getElementById('scanStatus').innerText = "Failed to fetch stats ❌";
+    console.error(err);
   }
-  console.log("Cache loaded?", loaded, "lastProcessed=", state.lastProcessed);
-  await fullIndexFromLastProcessed();
-  setInterval(async () => {
-    try {
-      const latest = await web3Read.eth.getBlockNumber();
-      if (latest > state.lastProcessed) {
-        await indexRange(state.lastProcessed + 1, latest);
-      }
-    } catch (e) {
-      console.warn('tail error', e);
+}
+
+// --- API: Holders ---
+async function loadHolders() {
+  try {
+    const holders = await fetch(`${API}/holders`).then(r => r.json());
+    const list = document.getElementById('holdersList');
+    list.innerHTML = "";
+    if (holders.length === 0) {
+      list.innerHTML = `<div class="holder"><span>No holders yet</span><span>0 MONS</span></div>`;
+    } else {
+      holders.forEach(h => {
+        list.innerHTML += `<div class="holder"><span>${h.address}</span><span>${h.balance.toLocaleString()} MONS</span></div>`;
+      });
     }
-  }, 15_000);
-});
-
-function setScanStatus(msg){
-  document.getElementById('scanStatus').innerText = msg;
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-function updateLastBlock(){
-  document.getElementById('lastBlock').innerText = `Last synced block: ${state.lastProcessed.toLocaleString()}`;
-}
-
+// --- Wallet Connect ---
 async function connectWallet(){
-  if(!window.ethereum){ alert('Wallet (MetaMask) not found.'); return; }
+  if(!window.ethereum){ alert('Wallet not found. Install MetaMask.'); return; }
   try{
     await ensureMonadNetwork();
     const accs = await window.ethereum.request({ method:'eth_requestAccounts' });
@@ -144,20 +133,18 @@ async function ensureMonadNetwork(){
   try{
     await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId:hex }] });
   }catch(switchErr){
-    try{
-      await window.ethereum.request({ method:'wallet_addEthereumChain', params:[{
-        chainId:hex,
-        chainName:'Monad Testnet',
-        rpcUrls:[MONAD.rpcUrl],
-        nativeCurrency:{ name:'MON', symbol:'MON', decimals:18 },
-        blockExplorerUrls:['https://testnet.monadexplorer.com']
-      }] });
-    }catch(addErr){ console.error(addErr); }
+    await window.ethereum.request({ method:'wallet_addEthereumChain', params:[{
+      chainId:hex,
+      chainName:'Monad Testnet',
+      rpcUrls:[MONAD.rpcUrl],
+      nativeCurrency:{ name:'MON', symbol:'MON', decimals:18 },
+      blockExplorerUrls:['https://testnet.monadexplorer.com']
+    }] });
   }
 }
-
 function shortAddr(a){ return a ? a.slice(0,6)+'…'+a.slice(-4) : ''; }
 
+// --- Mint Token ---
 async function mintToken(){
   if(!currentAccount){ alert('Connect wallet first'); return; }
   const inscription = { p:'mon-20', op:'mint', tick:TICK, amt:String(MINT_LIMIT) };
@@ -166,100 +153,9 @@ async function mintToken(){
   try{
     const txHash = await window.ethereum.request({ method:'eth_sendTransaction', params:[tx] });
     alert('Mint sent: '+txHash);
-    pollAndProcessTx(txHash);
+    // refresh stats after delay
+    setTimeout(()=>{ loadStats(); loadHolders(); }, 20000);
   }catch(e){ console.error(e); alert('Mint failed: '+(e?.message||e)); }
-}
-
-async function pollAndProcessTx(hash){
-  try{
-    for(let i=0;i<40;i++){
-      const fullTx = await web3Read.eth.getTransaction(hash);
-      if(fullTx && fullTx.blockNumber){
-        safeProcessTransaction(fullTx);
-        updateUI();
-        saveCache();
-        updateLastBlock();
-        break;
-      }
-      await sleep(1000);
-    }
-  }catch(e){ console.warn('poll error', e); }
-}
-
-async function fullIndexFromLastProcessed(){
-  try{
-    const latest = await web3Read.eth.getBlockNumber();
-    console.log("fullIndexFromLastProcessed: from", state.lastProcessed+1, "to", latest);
-    setScanStatus(`Starting index from block ${state.lastProcessed+1} to ${latest}…`);
-    if (latest > state.lastProcessed) {
-      await indexRange(state.lastProcessed+1, latest);
-    }
-  }catch(e){ console.error('initial index failed', e); setScanStatus('Indexing failed: '+e.message); }
-}
-
-async function indexRange(from, to){
-  if(to < from){ return; }
-  console.log("IndexRange called", from, to);
-  for(let start = from; start <= to; start += SCAN_BATCH){
-    const end = Math.min(start + SCAN_BATCH - 1, to);
-    setScanStatus(`Indexing blocks ${start.toLocaleString()} - ${end.toLocaleString()}…`);
-    for(let b = start; b <= end; b++){
-      try{
-        const block = await web3Read.eth.getBlock(b, false);
-        if(!block || !block.transactions) { state.lastProcessed = b; continue; }
-        for(const txHash of block.transactions){
-          const fullTx = await web3Read.eth.getTransaction(txHash);
-          if(fullTx) safeProcessTransaction(fullTx);
-        }
-        state.lastProcessed = b;
-      }catch(e){ console.warn('block error', e); }
-    }
-    updateUI();
-    saveCache();
-    updateLastBlock();
-    await sleep(80);
-  }
-  setScanStatus(`Synced up to block ${state.lastProcessed.toLocaleString()}.`);
-  updateLastBlock();
-}
-
-function safeProcessTransaction(tx){
-  try{
-    if(!tx || !tx.input || tx.input === '0x') return;
-    if(!tx.from || !tx.to) return;
-    if(tx.from.toLowerCase() !== tx.to.toLowerCase()) return;
-    const json = tryParseInscription(tx.input);
-    if(!json) return;
-
-    const p = (json.p||json.P||'').toString();
-    const op = (json.op||json.OP||'').toString();
-    const tick = (json.tick||json.TICK||'').toString();
-
-    if(p.toUpperCase()==='MON-20' && op.toLowerCase()==='deploy'){
-      return;
-    }
-
-    if(p.toUpperCase()==='MON-20' && op.toLowerCase()==='mint' && tick===TICK){
-      const amt = String(json.amt||json.AMT||'');
-      if(amt !== String(MINT_LIMIT)) return;
-      if(state.totalMinted + MINT_LIMIT > MAX_SUPPLY) return;
-
-      const addr = tx.from.toLowerCase();
-      const prev = state.holders.get(addr)||0;
-      state.holders.set(addr, prev + MINT_LIMIT);
-      state.totalMinted += MINT_LIMIT;
-      state.mintCount += 1;
-    }
-  }catch(e){ }
-}
-
-function tryParseInscription(inputHex){
-  try{
-    const hex = inputHex.startsWith('0x') ? inputHex.slice(2) : inputHex;
-    let out='';
-    for(let i=0;i<hex.length;i+=2){ out += String.fromCharCode(parseInt(hex.substr(i,2),16)); }
-    return JSON.parse(out);
-  }catch{ return null; }
 }
 
 function toHex(str){
@@ -267,73 +163,12 @@ function toHex(str){
   return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-
-function updateUI(){
-  const minted = state.totalMinted;
-  const remaining = Math.max(0, MAX_SUPPLY - minted);
-  document.getElementById('totalMinted').innerText = minted.toLocaleString();
-  document.getElementById('remaining').innerText = remaining.toLocaleString();
-  document.getElementById('holders').innerText = state.holders.size.toLocaleString();
-  document.getElementById('mintCount').innerText = state.mintCount.toLocaleString();
-  document.getElementById('progressFill').style.width = Math.min(100, (minted / MAX_SUPPLY) * 100) + '%';
-
-  const holdersList = document.getElementById('holdersList');
-  holdersList.innerHTML = '';
-  const top = Array.from(state.holders.entries()).sort((a,b)=>b[1]-a[1]).slice(0,20);
-  if(top.length===0){ holdersList.innerHTML = '<div class="holder"><span>No holders yet</span><span>0 MONS</span></div>'; return; }
-  top.forEach(([addr,b])=>{
-    holdersList.innerHTML += `<div class="holder"><span>${addr}</span><span>${b.toLocaleString()} MONS</span></div>`;
-  });
-}
-
-function saveCache(){
-  try{
-    const cache = {
-      totalMinted: state.totalMinted,
-      mintCount: state.mintCount,
-      holders: Array.from(state.holders.entries()),
-      lastProcessed: state.lastProcessed
-    };
-    localStorage.setItem('monsIndexerCache', JSON.stringify(cache));
-  }catch(e){ console.warn('cache save fail', e); }
-}
-
-function loadCache(){
-  try{
-    const raw = localStorage.getItem('monsIndexerCache');
-    if(!raw) return false;
-    const cache = JSON.parse(raw);
-    if(!cache.lastProcessed || cache.lastProcessed < DEPLOY_BLOCK){
-      console.warn("Cache invalid, resetting...");
-      return false;
-    }
-    state.totalMinted = cache.totalMinted;
-    state.mintCount = cache.mintCount;
-    state.holders = new Map(cache.holders);
-    state.lastProcessed = cache.lastProcessed;
-    updateUI();
-    updateLastBlock();
-    setScanStatus(`Loaded cached state up to block ${state.lastProcessed}`);
-    return true;
-  }catch(e){ console.warn('cache load fail', e); return false; }
-}
-
-function forceResync(){
-  state.totalMinted = 0;
-  state.mintCount = 0;
-  state.holders = new Map();
-  state.lastProcessed = DEPLOY_BLOCK - 1;
-  updateUI();
-  updateLastBlock();
-  localStorage.removeItem('monsIndexerCache');
-  fullIndexFromLastProcessed();
-}
-
-function clearCache(){
-  localStorage.removeItem('monsIndexerCache');
-  alert('Cache cleared. Refresh the page to reindex from deploy.');
-}
+// --- Auto Refresh ---
+window.onload = () => {
+  loadStats();
+  loadHolders();
+  setInterval(() => { loadStats(); loadHolders(); }, 15000);
+};
 </script>
 </body>
 </html>
