@@ -1,116 +1,318 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>MON-20 Explorer ($MONS)</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.2/web3.min.js"></script>
-  <style>
-    body { font-family: sans-serif; background:#0b0d14; color:#e9eef5; margin:0; }
-    .container { max-width:1100px; margin:auto; padding:20px; }
-    h1 { text-align:center; color:#4ecdc4; }
-    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin:20px 0; }
-    .card { background:#141827; padding:15px; border-radius:12px; text-align:center; }
-    .card h2 { margin:0; color:#4ecdc4; }
-    .progress { height:12px; background:#262a3a; border-radius:8px; overflow:hidden; margin:20px 0; }
-    .bar { height:100%; width:0; background:linear-gradient(90deg,#4ecdc4,#45b7d1); }
-    .row { text-align:center; margin:20px 0; }
-    button { background:#4ecdc4; border:none; padding:10px 18px; border-radius:8px; font-weight:bold; cursor:pointer; }
-    button:disabled { opacity:0.5; }
-    .holders { background:#141827; border-radius:12px; padding:15px; margin-top:20px; }
-    .holder { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
-    .mono { font-family: monospace; }
-    .footer { text-align:center; opacity:.7; margin:30px 0 10px; font-size:14px; }
-  </style>
+<meta charset="UTF-8">
+<title>MON-20 Explorer • $MONS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.2/web3.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0d14;--card:#141827;--muted:#9aa3b2;--text:#e9eef5;
+    --accent:#4ecdc4;--accent2:#45b7d1;--error:#ff6b6b;--ok:#95e1d3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+  a{color:var(--accent);text-decoration:none}
+  .container{max-width:1200px;margin:0 auto;padding:28px}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  h1{font-size:20px;margin:0}
+  .network{color:var(--muted);font-size:13px}
+  .pill{display:inline-flex;align-items:center;gap:8px;background:#1b2236;border:1px solid rgba(255,255,255,.06);padding:8px 12px;border-radius:999px}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, monospace}
+  .btn{background:var(--accent);color:#031016;border:none;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}
+  .btn.secondary{background:#222941;color:var(--text)}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .card{background:var(--card);border-radius:16px;padding:18px;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+  .card h2{margin:0;color:var(--accent);font-size:30px}
+  .card p{margin:6px 0 0;color:var(--muted);font-size:13px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .progress{height:12px;background:#262a3a;border-radius:8px;overflow:hidden;margin:16px 0}
+  .bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s ease}
+  .cta{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;margin:18px 0}
+  .statusline{display:flex;gap:10px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:13px}
+  .chip{padding:6px 10px;border-radius:999px;background:#1b2236;border:1px solid rgba(255,255,255,.06)}
+  .chip.ok{color:#b8fde6;border-color:#26443f;background:#12232e}
+  .chip.warn{color:#ffd6a5;border-color:#4a3b22;background:#221b12}
+  .chip.err{color:#ffd1d1;border-color:#4a2222;background:#2a1414}
+  .holders{margin-top:18px}
+  .holder{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+  .footer{opacity:.7;text-align:center;margin:22px 0 10px;font-size:13px}
+  @media (max-width:980px){
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .cta{grid-template-columns:1fr;align-items:stretch}
+  }
+</style>
 </head>
 <body>
 <div class="container">
-  <h1>MONAD MON-20 • $MONS</h1>
-  <div class="stats">
+  <div class="header">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>MONAD MON-20 • $MONS</h1>
+        <div class="network">Testnet • Chain ID 10143</div>
+      </div>
+    </div>
+    <div class="row">
+      <span id="addrPill" class="pill mono" style="display:none">—</span>
+      <button id="connectBtn" class="btn secondary" onclick="connectWallet()">Connect Wallet</button>
+    </div>
+  </div>
+
+  <div class="grid">
     <div class="card"><h2 id="totalMinted">0</h2><p>Total Minted</p></div>
     <div class="card"><h2 id="remaining">21,000,000</h2><p>Remaining</p></div>
     <div class="card"><h2 id="holders">0</h2><p>Holders</p></div>
     <div class="card"><h2 id="mintCount">0</h2><p>Mint Count</p></div>
   </div>
-  <div class="progress"><div class="bar" id="progressFill"></div></div>
-  
-  <div class="row">
-    <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
-    <span id="addr" class="mono"></span>
-    <div id="balance" style="margin-top:10px;color:#9aa3b2;"></div>
+
+  <div class="progress"><div id="progressFill" class="bar"></div></div>
+
+  <div class="cta card">
+    <div class="row">
+      <div class="pill">Ticker: <b class="mono">$MONS</b></div>
+      <div class="pill">Supply: <b class="mono">21,000,000</b></div>
+      <div class="pill">Per mint: <b class="mono">1,000</b></div>
+      <div class="pill">Method: <b class="mono">self-transfer</b></div>
+    </div>
+    <button id="mintBtn" class="btn" onclick="mintToken()" disabled>Mint 1,000 MONS</button>
+    <button class="btn secondary" onclick="forceRefresh()">Refresh</button>
+    <div id="userBal" class="pill mono">Balance: — MONS</div>
   </div>
 
-  <div class="holders">
-    <h3>Top Holders</h3>
-    <div id="holdersList"><div class="holder"><span>No holders yet</span><span>0 MONS</span></div></div>
+  <div class="statusline">
+    <span id="scanStatus" class="chip">Init…</span>
+    <span id="syncChip" class="chip">Sync: —</span>
+    <span id="lastBlock" class="chip">Last indexed: —</span>
+  </div>
+
+  <div class="card holders">
+    <h3 style="margin:0 0 8px">Top Holders</h3>
+    <div id="holdersList" class="mono">
+      <div class="holder"><span>No holders yet</span><span>0 MONS</span></div>
+    </div>
   </div>
 
   <div class="footer">
-    Created by <a href="https://x.com/ega_2ez4crypto" target="_blank" style="color:#4ecdc4">@ega_2ez4crypto</a><br>
-    Fully on-chain • Powered by Monad Testnet
+    Created by <a href="https://x.com/ega_2ez4crypto" target="_blank">@ega_2ez4crypto</a><br/>
+    Fully onchain • No centralized DB on client • Index via Railway backend
   </div>
 </div>
 
 <script>
-const API = "https://mon20-indexer-backend-production.up.railway.app"; // ganti sesuai Railway URL
-const MAX_SUPPLY = 21000000;
-let web3;
-let currentAccount;
+/** ====== CONFIG ====== **/
+const API = "https://mon20-indexer-backend-production.up.railway.app"; // <- ganti kalau URL beda
+const MAX_SUPPLY = 21_000_000;
+const MINT_LIMIT = 1_000;
+const TICK = "MONS";
+const MONAD = { chainId: 10143, hex: '0x' + (10143).toString(16) }; // 0x279F
+const RPCS = [
+  'https://rpc.ankr.com/monad_testnet',
+  'https://testnet-rpc.monad.xyz',
+  'https://rpc-testnet.monadinfra.com'
+];
 
-// Fetch stats & holders
-async function loadData(){
-  try {
-    const stats = await fetch(API + "/stats").then(r=>r.json());
-    const holders = await fetch(API + "/holders").then(r=>r.json());
+let web3Read = null;   // read-only RPC for latest block (sync status)
+let web3Wallet = null; // wallet provider
+let currentAccount = null;
+let activeRpc = RPCS[0];
 
-    document.getElementById("totalMinted").innerText = stats.totalMinted.toLocaleString();
-    document.getElementById("remaining").innerText = (MAX_SUPPLY - stats.totalMinted).toLocaleString();
-    document.getElementById("holders").innerText = holders.length;
-    document.getElementById("mintCount").innerText = stats.mintCount.toLocaleString();
+/** ====== INIT ====== **/
+window.addEventListener('load', async () => {
+  await pickHealthyRpc();
+  web3Read = new Web3(activeRpc);
+  setStatus('Connected RPC: ' + short(activeRpc));
+  await refreshAll();
+  setInterval(refreshAll, 12_000);
+});
 
-    document.getElementById("progressFill").style.width = Math.min(100,(stats.totalMinted / MAX_SUPPLY) * 100) + "%";
+/** ====== UI HELPERS ====== **/
+function setStatus(msg){ document.getElementById('scanStatus').textContent = msg; }
+function setSyncChip(text, cls=''){ const el = document.getElementById('syncChip'); el.textContent = text; el.className = 'chip ' + cls; }
+function setLastBlock(text){ document.getElementById('lastBlock').textContent = 'Last indexed: ' + text; }
+function short(s){ return s.length>36 ? s.slice(0,28)+'…'+s.slice(-6) : s; }
+function shortAddr(a){ return a ? a.slice(0,6)+'…'+a.slice(-4) : ''; }
 
-    const list = document.getElementById("holdersList");
-    list.innerHTML = "";
-    if(holders.length===0){
+/** ====== DATA FETCH ====== **/
+async function refreshAll(){
+  try{
+    const [stats, holders] = await Promise.all([
+      fetch(API + '/stats', {cache:'no-store'}).then(r=>r.json()),
+      fetch(API + '/holders', {cache:'no-store'}).then(r=>r.json()).catch(()=>[])
+    ]);
+
+    // stats cards
+    const totalMinted = Number(stats.totalMinted||0);
+    const mintCount   = Number(stats.mintCount||0);
+    const lastIndexed = Number(stats.lastBlock||0);
+
+    document.getElementById('totalMinted').innerText = totalMinted.toLocaleString();
+    document.getElementById('remaining').innerText   = Math.max(0, MAX_SUPPLY-totalMinted).toLocaleString();
+    document.getElementById('holders').innerText     = Array.isArray(holders) ? holders.length.toLocaleString() : '0';
+    document.getElementById('mintCount').innerText   = mintCount.toLocaleString();
+    document.getElementById('progressFill').style.width = Math.min(100,(totalMinted/MAX_SUPPLY)*100)+'%';
+    setLastBlock(lastIndexed.toLocaleString());
+
+    // sync status vs latest chain head
+    try{
+      const latest = await withTimeout(web3Read.eth.getBlockNumber(), 6000);
+      const lag = Math.max(0, latest - lastIndexed);
+      if (lag <= 2) setSyncChip(`Synced • head ${latest}`, 'ok');
+      else if (lag <= 500) setSyncChip(`Catching up: -${lag} blocks`, 'warn');
+      else setSyncChip(`Far behind: -${lag} blocks`, 'err');
+    }catch{ setSyncChip('RPC lag / timeout', 'warn'); }
+
+    // render holders
+    const list = document.getElementById('holdersList');
+    list.innerHTML = '';
+    if (!Array.isArray(holders) || holders.length===0){
       list.innerHTML = '<div class="holder"><span>No holders yet</span><span>0 MONS</span></div>';
     } else {
       holders.forEach(h=>{
-        list.innerHTML += `<div class="holder"><span>${h.address}</span><span>${h.balance.toLocaleString()} MONS</span></div>`;
+        list.innerHTML += `<div class="holder"><span>${h.address}</span><span>${Number(h.balance||0).toLocaleString()} MONS</span></div>`;
       });
     }
-  } catch(e){
-    console.error("Failed to fetch stats", e);
+
+    // update user balance if connected
+    if (currentAccount) { await refreshUserBalance(holders); }
+
+  }catch(e){
+    setStatus('Indexing: Failed to fetch stats ❌');
+    setSyncChip('API error', 'err');
+    console.error(e);
   }
 }
 
-// Connect wallet
+async function refreshUserBalance(holdersListMaybe){
+  try{
+    let balance = 0;
+    if (Array.isArray(holdersListMaybe)){
+      const row = holdersListMaybe.find(x => (x.address||'').toLowerCase() === currentAccount.toLowerCase());
+      if (row) balance = Number(row.balance||0);
+    } else {
+      // fallback try fetch holders again
+      const hl = await fetch(API + '/holders').then(r=>r.json());
+      const row = Array.isArray(hl) ? hl.find(x => (x.address||'').toLowerCase() === currentAccount.toLowerCase()) : null;
+      if (row) balance = Number(row.balance||0);
+    }
+    document.getElementById('userBal').textContent = `Balance: ${balance.toLocaleString()} MONS`;
+  }catch{
+    document.getElementById('userBal').textContent = `Balance: n/a`;
+  }
+}
+
+/** ====== WALLET / MINT ====== **/
 async function connectWallet(){
-  if(!window.ethereum){ alert("Please install MetaMask!"); return; }
-  web3 = new Web3(window.ethereum);
-  try {
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    currentAccount = accounts[0];
-    document.getElementById("connectBtn").innerText = "Wallet Connected";
-    document.getElementById("addr").innerText = shortAddr(currentAccount);
-    loadBalance();
-  } catch(e){ console.error(e); }
+  if(!window.ethereum){ alert('MetaMask not found'); return; }
+  try{
+    await ensureMonadNetwork();
+    const accs = await window.ethereum.request({ method:'eth_requestAccounts' });
+    currentAccount = accs[0];
+    web3Wallet = new Web3(window.ethereum);
+
+    // UI
+    const pill = document.getElementById('addrPill');
+    pill.style.display = 'inline-flex';
+    pill.textContent = shortAddr(currentAccount);
+    document.getElementById('connectBtn').textContent = 'Connected';
+    document.getElementById('mintBtn').disabled = false;
+
+    await refreshAll(); // also sets balance
+  }catch(e){
+    console.error(e);
+    alert('Connect failed: ' + (e?.message||e));
+  }
 }
 
-// Fetch balance from holders API
-async function loadBalance(){
-  if(!currentAccount) return;
-  try {
-    const holders = await fetch(API + "/holders").then(r=>r.json());
-    const h = holders.find(x=>x.address.toLowerCase()===currentAccount.toLowerCase());
-    const bal = h ? h.balance : 0;
-    document.getElementById("balance").innerText = "Your Balance: " + bal.toLocaleString() + " MONS";
-  } catch(e){ console.error(e); }
+async function ensureMonadNetwork(){
+  const params = [{ chainId: MONAD.hex }];
+  try{
+    await window.ethereum.request({ method:'wallet_switchEthereumChain', params });
+  }catch(switchErr){
+    if (switchErr?.code === 4902 || /Unrecognized/.test(String(switchErr?.message||''))){
+      await window.ethereum.request({
+        method:'wallet_addEthereumChain',
+        params:[{
+          chainId: MONAD.hex,
+          chainName:'Monad Testnet',
+          rpcUrls:[activeRpc],
+          nativeCurrency:{ name:'MON', symbol:'MON', decimals:18 },
+          blockExplorerUrls:['https://testnet.monadexplorer.com']
+        }]
+      });
+    } else {
+      throw switchErr;
+    }
+  }
 }
 
-function shortAddr(a){ return a.slice(0,6)+"…"+a.slice(-4); }
+async function mintToken(){
+  if(!currentAccount){ alert('Connect wallet first'); return; }
+  const inscription = { p:'mon-20', op:'mint', tick:TICK, amt:String(MINT_LIMIT) }; // spec: p lowercase for mint
+  const dataHex = '0x' + toHex(JSON.stringify(inscription));
+  const tx = { from: currentAccount, to: currentAccount, value:'0x0', data:dataHex };
+  try{
+    const txHash = await window.ethereum.request({ method:'eth_sendTransaction', params:[tx] });
+    toast(`Mint sent: ${txHash.slice(0,10)}…`);
+    // Poll until mined, then refresh balance/UI
+    await waitForInclusion(txHash, 45);
+    await delay(1500);
+    await refreshAll();
+    toast('Mint indexed ✅ (if backend caught it, refresh in a few sec)');
+  }catch(e){
+    console.error(e);
+    alert('Mint failed: ' + (e?.message||e));
+  }
+}
 
-setInterval(loadData, 15000);
-loadData();
+async function waitForInclusion(hash, attempts=40){
+  for(let i=0;i<attempts;i++){
+    try{
+      const tx = await web3Read.eth.getTransaction(hash);
+      if(tx && tx.blockNumber) return true;
+    }catch{}
+    await delay(1000);
+  }
+  return false;
+}
+
+/** ====== RPC PICKER ====== **/
+async function pickHealthyRpc(){
+  for(const url of RPCS){
+    try{
+      const w3 = new Web3(url);
+      await withTimeout(w3.eth.getBlockNumber(), 5000);
+      activeRpc = url;
+      return;
+    }catch{}
+  }
+  activeRpc = RPCS[0];
+}
+
+/** ====== UTILS ====== **/
+function toHex(str){ return [...new TextEncoder().encode(str)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function withTimeout(promise, ms){ return Promise.race([promise, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]); }
+function forceRefresh(){ refreshAll(); }
+
+function toast(msg){
+  const div = document.createElement('div');
+  div.textContent = msg;
+  div.style.position='fixed';
+  div.style.bottom='16px';
+  div.style.right='16px';
+  div.style.background='#111827';
+  div.style.border='1px solid rgba(255,255,255,.08)';
+  div.style.padding='10px 12px';
+  div.style.borderRadius='10px';
+  div.style.boxShadow='0 6px 18px rgba(0,0,0,.35)';
+  div.style.zIndex=9999;
+  document.body.appendChild(div);
+  setTimeout(()=>div.remove(), 4200);
+}
 </script>
 </body>
 </html>
