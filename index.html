@@ -341,6 +341,110 @@
 </head>
 <body>
     <div class="container">
+                <div class="card">
+            <h2>
+                <span class="icon">🔧</span>
+                Contract Upgrade Solutions
+            </h2>
+            <div style="line-height: 1.6;">
+                <h3>Option 1: Deploy New Contract (Recommended)</h3>
+                <div style="background: #d4edda; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #c3e6cb;">
+                    <p><strong>✅ Advantages:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Fresh start with correct MON-20 format</li>
+                        <li>All new mints will be valid</li>
+                        <li>Clear separation from invalid mints</li>
+                        <li>Can reset supply or continue from current progress</li>
+                    </ul>
+                    <p><strong>❌ Disadvantages:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Previous invalid inscriptions remain invalid</li>
+                        <li>Need to update all tools/websites with new address</li>
+                    </ul>
+                </div>
+
+                <h3>Option 2: Hybrid Approach (Best for Community)</h3>
+                <div style="background: #d1ecf1; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #bee5eb;">
+                    <p><strong>Recommended Solution:</strong></p>
+                    <ol style="margin-left: 20px;">
+                        <li><strong>Deploy new contract</strong> with fixed inscription format</li>
+                        <li><strong>Honor current progress:</strong> Start new contract at 10,416,000 minted</li>
+                        <li><strong>Blacklist invalid mints</strong> in indexer/explorer</li>
+                        <li><strong>Only count valid mints</strong> going forward</li>
+                    </ol>
+                    <br>
+                    <p><strong>New Contract Configuration:</strong></p>
+                    <code style="display: block; background: #f8f9fa; padding: 10px; border-radius: 5px;">
+// New Contract Settings:<br>
+TICK: "MONS"<br>
+MAX_SUPPLY: 21,000,000<br>
+LIMIT_PER_MINT: 1000<br>
+STARTING_MINTED: 10,416,000 (honor previous valid progress)<br>
+REMAINING: 10,584,000<br>
+<br>
+// Inscription format (FIXED):<br>
+{"p":"MON-20","op":"mint","tick":"MONS","amt":"1000"}
+                    </code>
+                </div>
+
+                <h3>Migration Plan</h3>
+                <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #ffeaa7;">
+                    <p><strong>Phase 1: Contract Deployment</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Deploy new contract with fixed inscription format</li>
+                        <li>Set initial minted amount to honor community progress</li>
+                        <li>Test thoroughly before public announcement</li>
+                    </ul>
+                    <br>
+                    <p><strong>Phase 2: Community Migration</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Update all tools, websites, explorers</li>
+                        <li>Announce new contract address</li>
+                        <li>Educate community about valid vs invalid inscriptions</li>
+                    </ul>
+                    <br>
+                    <p><strong>Phase 3: Indexing Rules</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Update MonVision explorer to show invalid mints as "INVALID"</li>
+                        <li>Only count mints with <code>"amt":"1000"</code> format</li>
+                        <li>Create clear distinction between old (invalid) and new (valid) mints</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>
+                <span class="icon">🚨</span>
+                URGENT: Contract Bug Detected
+            </h2>
+            <div style="line-height: 1.6; color: #721c24;">
+                <div style="background: #f8d7da; padding: 20px; border-radius: 10px; border: 2px solid #dc3545;">
+                    <h3 style="color: #721c24; margin-bottom: 15px;">⚠️ ALL CURRENT MINTS ARE INVALID</h3>
+                    <p><strong>Problem:</strong> The smart contract is emitting Wei amounts in inscription data instead of human-readable amounts.</p>
+                    <br>
+                    <p><strong>Examples of Invalid Mints:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Inscription #10690: <code>"amt":"1000000000000000000000"</code> ❌</li>
+                        <li>Inscription #10699: <code>"amt":"1000000000000000000000"</code> ❌</li>
+                    </ul>
+                    <br>
+                    <p><strong>Required Fix:</strong></p>
+                    <code style="display: block; background: #fff; padding: 10px; border-radius: 5px; margin: 10px 0;">
+// In the smart contract mint function:<br>
+// Instead of:<br>
+emit Inscribe(user, tick, "mint", amount, data, inscriptionNumber);<br>
+<br>
+// Should be:<br>
+string memory data = '{"p":"MON-20","op":"mint","tick":"MONS","amt":"1000"}';<br>
+emit Inscribe(user, tick, "mint", 1000, data, inscriptionNumber);
+                    </code>
+                    <br>
+                    <p><strong>Status:</strong> 🔴 Minting is temporarily disabled until contract is fixed</p>
+                </div>
+            </div>
+        </div>
+
         <div class="header">
             <h1>🚀 MON-20 Minting Tool</h1>
             <p>First Inscription Token on MONAD Testnet</p>
@@ -385,10 +489,18 @@
                 </div>
 
                 <div class="invalid-mint-warning">
-                    <strong>⚠️ Invalid Mint Detected!</strong><br>
-                    Transaction Hash: 0xe2a7...1f63<br>
-                    Inscription #10690 - Amount: 1000000000000000000000<br>
-                    <strong>This mint is INVALID</strong> - Correct format should be "1000" not "1000000000000000000000"
+                    <strong>📊 MINTING HISTORY ANALYSIS</strong><br>
+                    <div style="background: #d4edda; padding: 10px; margin: 10px 0; border-radius: 5px;">
+                        <strong>✅ VALID PERIOD (Inscriptions #1 - #10600):</strong><br>
+                        Format: <code>{"p":"mon-20","op":"mint","tick":"MONS","amt":"1000"}</code><br>
+                        Status: <strong style="color: #155724;">VALID MON-20 mints</strong>
+                    </div>
+                    <div style="background: #f8d7da; padding: 10px; margin: 10px 0; border-radius: 5px;">
+                        <strong>❌ INVALID PERIOD (Inscriptions #10601+):</strong><br>
+                        Format: <code>{"p":"MON-20","op":"mint","tick":"MONS","amt":"1000000000000000000000"}</code><br>
+                        Examples: #10690, #10699<br>
+                        Status: <strong style="color: #721c24;">INVALID - Wei format bug</strong>
+                    </div>
                 </div>
 
                 <div class="progress-section">
@@ -409,14 +521,25 @@
                         <div class="stat-value" id="limitPerMint">1,000</div>
                         <div class="stat-label">Limit per Mint</div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="currentMinted">10,416,000</div>
-                        <div class="stat-label">Total Minted</div>
+                    <div class="stat-item" style="background: rgba(76, 175, 80, 0.1);">
+                        <div class="stat-value" style="color: #4CAF50;" id="validMints">10,600,000</div>
+                        <div class="stat-label">Valid Mints (#1-#10600)</div>
+                    </div>
+                    <div class="stat-item" style="background: rgba(220, 53, 69, 0.1);">
+                        <div class="stat-value" style="color: #dc3545;" id="invalidMints">~99</div>
+                        <div class="stat-label">Invalid Mints (#10601+)</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="remainingSupply">10,584,000</div>
-                        <div class="stat-label">Remaining</div>
+                        <div class="stat-value" id="remainingSupply">10,400,000</div>
+                        <div class="stat-label">Remaining Supply</div>
                     </div>
+                </div>
+                
+                <div style="background: #d1ecf1; padding: 10px; border-radius: 8px; margin-top: 15px; font-size: 0.9rem;">
+                    <strong>📊 Current Status:</strong><br>
+                    ✅ Valid MONS tokens: <strong>10,600,000</strong> (50.48%)<br>
+                    ❌ Invalid mints: <strong>~99 inscriptions</strong> (bug period)<br>
+                    🎯 Contract fix needed to continue valid minting<br>
                 </div>
             </div>
 
@@ -441,8 +564,8 @@
                         <small style="color: #666;">Fixed amount: 1000 MONS per mint</small>
                     </div>
 
-                    <button class="btn btn-primary" id="mintBtn" onclick="mintTokens()">
-                        <span id="mintBtnText">Mint 1000 MONS</span>
+                    <button class="btn btn-primary" id="mintBtn" onclick="showContractWarning()" style="background: #dc3545;">
+                        <span id="mintBtnText">⚠️ MINTING DISABLED - CONTRACT BUG</span>
                     </button>
                 </div>
 
@@ -458,33 +581,92 @@
             <div style="line-height: 1.6;">
                 <p><strong>MON-20</strong> is the first inscription token standard on MONAD testnet, similar to BRC-20 on Bitcoin.</p>
                 <br>
-                <h3>⚠️ Critical Issue Found:</h3>
-                <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                    <strong>Inscription #10690 is INVALID!</strong><br>
-                    Shows: <code>amt:"1000000000000000000000"</code><br>
-                    Should be: <code>amt:"1000"</code>
+                
+                <div style="background: #f8d7da; padding: 15px; border-radius: 10px; margin: 20px 0; border: 1px solid #dc3545;">
+                    <h3 style="color: #721c24;">🚨 CRITICAL CONTRACT BUG STATUS</h3>
+                    <p><strong>Problem:</strong> Smart contract emits Wei amounts instead of human-readable amounts</p>
+                    <p><strong>Result:</strong> ALL current mints are INVALID for MON-20 standard</p>
+                    <p><strong>Action Required:</strong> Contract must be updated and redeployed</p>
                 </div>
                 
-                <h3>Minting Rules:</h3>
+                <h3>Critical Finding: Partial Valid Mints Found!</h3>
+                <div style="background: #d4edda; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #c3e6cb;">
+                    <p><strong>🎉 Good News - Valid MON-20 Tokens Exist!</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>✅ <strong>Inscriptions #1 - #10600:</strong> Valid format "amt":"1000"</li>
+                        <li>✅ <strong>10,600,000 MONS</strong> are legitimate MON-20 tokens</li>
+                        <li>✅ These mints follow correct MON-20 standard</li>
+                        <li>❌ <strong>Inscriptions #10601+:</strong> Invalid Wei format bug</li>
+                    </ul>
+                    <br>
+                    <p><strong>Status:</strong> 50.48% of total supply has been validly minted!</p>
+                </div>
+
+                <h3>What Happened?</h3>
+                <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #ffeaa7;">
+                    <p><strong>Timeline Analysis:</strong></p>
+                    <ol style="margin-left: 20px;">
+                        <li><strong>Phase 1 (Inscriptions #1-#10600):</strong> Contract worked correctly</li>
+                        <li><strong>Bug Introduced:</strong> Something changed after inscription #10600</li>
+                        <li><strong>Phase 2 (Inscriptions #10601+):</strong> Wei format bug appeared</li>
+                    </ol>
+                    <br>
+                    <p><strong>Possible Causes:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Contract upgrade that introduced bug</li>
+                        <li>Frontend/interaction change</li>
+                        <li>Different minting method being used</li>
+                    </ul>
+                </div>
+
+                <h3>Recommended Solution</h3>
+                <div style="background: #d1ecf1; padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #bee5eb;">
+                    <p><strong>✅ No New Contract Needed!</strong></p>
+                    <p>Since 10,600,000 valid tokens already exist, the solution is:</p>
+                    <ol style="margin-left: 20px;">
+                        <li><strong>Fix the bug</strong> that was introduced after inscription #10600</li>
+                        <li><strong>Resume minting</strong> with correct format from current progress</li>
+                        <li><strong>Continue from 10,600,000</strong> to complete the 21M supply</li>
+                        <li><strong>Invalid mints</strong> (#10601+) should be ignored by indexers</li>
+                    </ol>
+                    <br>
+                    <p><strong>Remaining to mint:</strong> 10,400,000 MONS (49.52%)</p>
+                </div>
+
+                <h3>Path Forward</h3>
                 <ul style="margin-left: 20px; margin-top: 10px;">
-                    <li>✅ Each mint is exactly <strong>1000 MONS</strong></li>
-                    <li>✅ Total supply: <strong>21,000,000 MONS</strong></li>
-                    <li>✅ Contract uses 18 decimal format internally</li>
-                    <li>❌ Inscription data must show "1000" NOT "1000000000000000000000"</li>
-                    <li>❌ Invalid mints don't count toward progress</li>
+                    <li>❌ Inscription #10690: amt:"1000000000000000000000"</li>
+                    <li>❌ Inscription #10699: amt:"1000000000000000000000"</li>
+                    <li>❌ All other mints showing Wei format</li>
                 </ul>
                 <br>
-                <h3>Correct Inscription Format:</h3>
-                <code style="display: block; padding: 10px; background: #d4edda; border-radius: 5px;">
-                    {"p":"MON-20","op":"mint","tick":"MONS","amt":"1000"}
+                
+                <h3>MON-20 Standard Requirements:</h3>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>✅ Each mint must be exactly <strong>"1000"</strong> (not 1000000000000000000000)</li>
+                    <li>✅ Total supply: <strong>21,000,000 MONS</strong></li>
+                    <li>✅ Format: <code>{"p":"MON-20","op":"mint","tick":"MONS","amt":"1000"}</code></li>
+                </ul>
+                <br>
+                
+                <h3>Required Contract Fix:</h3>
+                <code style="display: block; padding: 15px; background: #d4edda; border-radius: 5px; border: 1px solid #c3e6cb;">
+// Fix the mint function to emit correct data:<br>
+function mint(string memory tick, uint256 amount) external payable {<br>
+&nbsp;&nbsp;// ... validation code ...<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;// Create proper MON-20 inscription data<br>
+&nbsp;&nbsp;string memory data = '{"p":"MON-20","op":"mint","tick":"MONS","amt":"1000"}';<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;// Emit with human-readable amount (1000) not Wei<br>
+&nbsp;&nbsp;emit Inscribe(msg.sender, tick, "mint", 1000, data, inscriptionCounter);<br>
+}
                 </code>
                 <br>
-                <h3>❌ WRONG Format (like inscription #10690):</h3>
-                <code style="display: block; padding: 10px; background: #f8d7da; border-radius: 5px;">
-                    {"p":"MON-20","op":"mint","tick":"MONS","amt":"1000000000000000000000"}
-                </code>
-                <br>
-                <p><strong>Note:</strong> The smart contract needs to be updated to emit the correct inscription data format showing "1000" instead of the Wei representation.</p>
+                <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 5px;">
+                    <strong>Note:</strong> Until this contract bug is fixed, no valid MON-20 mints can occur. 
+                    All current "mints" are invalid and will not be recognized by the MON-20 standard.
+                </p>
             </div>
         </div>
 
@@ -639,6 +821,15 @@
                 console.error('Error connecting wallet:', error);
                 showMessage('Failed to connect wallet: ' + error.message, 'error');
             }
+        }
+
+        function showContractWarning() {
+            showMessage(
+                '🚨 MINTING DISABLED: The smart contract has a critical bug that makes all mints invalid. ' +
+                'All inscriptions show "amt":"1000000000000000000000" instead of "amt":"1000". ' +
+                'Contract must be fixed before valid MON-20 minting can occur.',
+                'error'
+            );
         }
 
         async function mintTokens() {
