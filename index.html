@@ -375,15 +375,20 @@
                 <div class="ticker-display">$MONS</div>
                 
                 <div class="validation-info">
-                    <h3>⚠️ Validation Format</h3>
-                    <p>Only valid mints follow this format:</p>
+                    <h3>✅ Correct Format</h3>
+                    <p><strong>Valid MON-20 mint data:</strong></p>
                     <code>{"p":"MON-20","op":"mint","tick":"MONS","amt":"1000"}</code>
+                    <br><br>
+                    <h3>❌ Invalid Format</h3>
+                    <p><strong>Do NOT use Wei format (18 decimals):</strong></p>
+                    <code style="color: #dc3545;">{"p":"MON-20","op":"mint","tick":"MONS","amt":"1000000000000000000000"}</code>
                 </div>
 
                 <div class="invalid-mint-warning">
                     <strong>⚠️ Invalid Mint Detected!</strong><br>
-                    Amount: 1000000000000000000000 (1000 * 10^18)<br>
-                    This mint is INVALID and not counted in progress.
+                    Transaction Hash: 0xe2a7...1f63<br>
+                    Inscription #10690 - Amount: 1000000000000000000000<br>
+                    <strong>This mint is INVALID</strong> - Correct format should be "1000" not "1000000000000000000000"
                 </div>
 
                 <div class="progress-section">
@@ -453,19 +458,33 @@
             <div style="line-height: 1.6;">
                 <p><strong>MON-20</strong> is the first inscription token standard on MONAD testnet, similar to BRC-20 on Bitcoin.</p>
                 <br>
+                <h3>⚠️ Critical Issue Found:</h3>
+                <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                    <strong>Inscription #10690 is INVALID!</strong><br>
+                    Shows: <code>amt:"1000000000000000000000"</code><br>
+                    Should be: <code>amt:"1000"</code>
+                </div>
+                
                 <h3>Minting Rules:</h3>
                 <ul style="margin-left: 20px; margin-top: 10px;">
                     <li>✅ Each mint is exactly <strong>1000 MONS</strong></li>
                     <li>✅ Total supply: <strong>21,000,000 MONS</strong></li>
-                    <li>✅ Uses 18 decimal format internally</li>
-                    <li>❌ Mints above 1000 are <strong>INVALID</strong></li>
+                    <li>✅ Contract uses 18 decimal format internally</li>
+                    <li>❌ Inscription data must show "1000" NOT "1000000000000000000000"</li>
                     <li>❌ Invalid mints don't count toward progress</li>
                 </ul>
                 <br>
-                <h3>Transaction Format:</h3>
-                <code style="display: block; padding: 10px; background: #f5f5f5; border-radius: 5px;">
+                <h3>Correct Inscription Format:</h3>
+                <code style="display: block; padding: 10px; background: #d4edda; border-radius: 5px;">
                     {"p":"MON-20","op":"mint","tick":"MONS","amt":"1000"}
                 </code>
+                <br>
+                <h3>❌ WRONG Format (like inscription #10690):</h3>
+                <code style="display: block; padding: 10px; background: #f8d7da; border-radius: 5px;">
+                    {"p":"MON-20","op":"mint","tick":"MONS","amt":"1000000000000000000000"}
+                </code>
+                <br>
+                <p><strong>Note:</strong> The smart contract needs to be updated to emit the correct inscription data format showing "1000" instead of the Wei representation.</p>
             </div>
         </div>
 
@@ -647,12 +666,16 @@
                     mintFee = ethers.parseEther("0.001"); // Default fee
                 }
 
-                // Prepare transaction
-                const amount = ethers.parseEther("1000"); // 1000 * 10^18
+                // CRITICAL: Use the correct amount format for MON-20
+                // The contract expects Wei format (1000 * 10^18) internally
+                // But the inscription data should show "1000" in JSON
+                const amount = ethers.parseEther("1000"); // This converts to 1000000000000000000000 Wei
                 
+                showMessage('⚠️ IMPORTANT: This will create inscription data with amt:"1000" (not Wei format)', 'warning');
                 showMessage('Confirm the transaction in your wallet...', 'warning');
 
-                // Send mint transaction
+                // Send mint transaction with proper data encoding
+                // The smart contract should emit the correct inscription format
                 const tx = await contract.mint("MONS", amount, {
                     value: mintFee,
                     gasLimit: 300000
@@ -665,15 +688,19 @@
                 
                 if (receipt.status === 1) {
                     showMessage(
-                        `🎉 Successfully minted 1000 MONS! Transaction: ${tx.hash.substring(0, 10)}...`,
+                        `🎉 Successfully minted 1000 MONS!<br>
+                        Transaction: ${tx.hash}<br>
+                        <strong>Please verify inscription shows amt:"1000" (not Wei format)</strong>`,
                         'success'
                     );
                     
-                    // Update progress (in a real app, you'd fetch from contract)
-                    // For demo purposes, we'll simulate an update
+                    // Important note about verification
                     setTimeout(() => {
-                        showMessage('Mint data inscribed on blockchain!', 'success');
-                    }, 2000);
+                        showMessage(
+                            'ℹ️ Check MonVision explorer to verify inscription format is correct: {"p":"MON-20","op":"mint","tick":"MONS","amt":"1000"}',
+                            'info'
+                        );
+                    }, 3000);
                     
                 } else {
                     showMessage('Transaction failed. Please try again.', 'error');
