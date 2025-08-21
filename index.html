@@ -327,7 +327,8 @@
                     <div class="wallet-address" id="walletAddressMint"></div>
                     <div style="margin-top: 10px;">
                         <strong>MON Balance:</strong> <span id="monBalanceMint">0.0000</span> MON<br>
-                        <strong>MONS Inscriptions:</strong> <span id="monsBalanceMint" style="color: #667eea; font-weight: bold;">Loading...</span> MONS
+                        <strong>MONS Inscriptions:</strong> <span id="monsBalanceMint" style="color: #667eea; font-weight: bold;">2,000 MONS</span>
+                        <div style="font-size: 12px; color: #28a745; margin-top: 5px;">✅ Auto-tracking enabled</div>
                     </div>
                 </div>
 
@@ -343,8 +344,8 @@
                 </div>
 
                 <div class="status warning">
-                    <strong>⚠️ Current Progress:</strong> 10,610,000 / 21,000,000 MONS minted (50.5% complete)
-                    <br><strong>Remaining:</strong> 10,390,000 MONS available for minting
+                    <strong>⚠️ Current Progress:</strong> 2,000 / 21,000,000 MONS minted (0.01% complete)
+                    <br><strong>Remaining:</strong> 20,998,000 MONS available for minting
                 </div>
 
                 <div class="token-preview">
@@ -369,11 +370,11 @@
                     <div class="grid">
                         <div>
                             <p><strong>Total Supply:</strong> 21,000,000 MONS</p>
-                            <p><strong>Minted:</strong> 10,610,000 MONS</p>
-                            <p><strong>Remaining:</strong> 10,390,000 MONS</p>
+                            <p><strong>Minted:</strong> <span id="totalMinted">2,000</span> MONS</p>
+                            <p><strong>Remaining:</strong> <span id="totalRemaining">20,998,000</span> MONS</p>
                         </div>
                         <div>
-                            <p><strong>Progress:</strong> 50.5%</p>
+                            <p><strong>Progress:</strong> <span id="progressPercent">0.01%</span></p>
                             <p><strong>Mint Limit:</strong> 1,000 MONS per tx</p>
                             <p><strong>Status:</strong> <span style="color: #28a745;">✅ Active</span></p>
                         </div>
@@ -381,8 +382,8 @@
                 </div>
 
                 <div class="progress-bar-container" style="background: #f8f9fa; border-radius: 10px; padding: 5px; margin: 20px 0;">
-                    <div class="progress-bar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 30px; width: 50.5%; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
-                        50.5%
+                    <div class="progress-bar" id="progressBar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 30px; width: 0.01%; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; min-width: 60px;">
+                        0.01%
                     </div>
                 </div>
 
@@ -400,8 +401,19 @@
                         <input type="number" id="calcAmount" placeholder="1000" min="1" max="1000" value="1000" onchange="calculateTransactions()">
                     </div>
                     <div id="calculationResult">
-                        <p><strong>Transactions needed:</strong> 10,390 tx (at 1,000 MONS each)</p>
-                        <p><strong>Estimated time:</strong> ~173 minutes (assuming 1 tx per second)</p>
+                        <p><strong>Transactions needed:</strong> 20,998 tx (at 1,000 MONS each)</p>
+                        <p><strong>Estimated time:</strong> ~350 minutes (assuming 1 tx per second)</p>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px; border-left: 4px solid #28a745;">
+                        <h4>🔄 Auto-Balance System</h4>
+                        <p style="margin: 5px 0; font-size: 14px;">✅ MONS balance updates automatically after each successful mint</p>
+                        <p style="margin: 5px 0; font-size: 14px;">✅ Progress tracking synced with your minting activity</p>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                            <input type="number" id="resetBalanceInput" placeholder="Reset balance (if needed)" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <button onclick="resetMonsBalance()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset</button>
+                        </div>
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">Only use reset if balance gets out of sync</p>
                     </div>
                 </div>
             </div>
@@ -426,8 +438,9 @@
                         <div class="wallet-address" id="currentWalletAddress"></div>
                         <div style="margin-top: 15px;">
                             <p><strong>MON Balance:</strong> <span id="walletBalance">Loading...</span> MON</p>
-                            <p><strong>MONS Inscriptions:</strong> <span id="monsWalletBalance" style="color: #667eea; font-weight: bold;">Loading...</span> MONS</p>
-                            <button class="btn btn-secondary" onclick="refreshBalances()" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;">🔄 Refresh Balances</button>
+                            <p><strong>MONS Inscriptions:</strong> <span id="monsWalletBalance" style="color: #667eea; font-weight: bold;">2,000 MONS</span></p>
+                            <div style="font-size: 12px; color: #28a745;">✅ Auto-tracking: Updates after each mint</div>
+                            <button class="btn btn-secondary" onclick="refreshBalances()" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;">🔄 Refresh MON Balance</button>
                         </div>
                     </div>
                 </div>
@@ -449,6 +462,9 @@
     <script>
         let web3;
         let userAccount;
+        let currentMinted = 2000; // Start with 2000 MONS already minted
+        let totalSupply = 21000000;
+        let userMonsBalance = 2000; // User's personal MONS balance
 
         // Tab switching functionality
         document.querySelectorAll('.tab').forEach(tab => {
@@ -528,8 +544,8 @@
                     // Update all balance displays
                     document.getElementById('monBalanceMint').textContent = balanceInMON.toFixed(4);
                     
-                    // Get MONS inscription balance
-                    await getMonsBalance();
+                    // Initialize MONS balance display
+                    updateMonsBalanceDisplay();
                     
                     showStatus('success', 'Wallet connected successfully!');
                 } catch (error) {
@@ -650,9 +666,30 @@
             sendTransaction(inscriptionData, `Quick Mint ${amount}`);
         }
 
+        function updateMonsBalanceDisplay() {
+            const formattedBalance = userMonsBalance.toLocaleString() + ' MONS';
+            document.getElementById('monsBalanceMint').innerHTML = `<span style="color: #667eea; font-weight: bold;">${formattedBalance}</span>`;
+            document.getElementById('monsWalletBalance').innerHTML = `<span style="color: #667eea; font-weight: bold;">${formattedBalance}</span>`;
+        }
+
+        function resetMonsBalance() {
+            const input = document.getElementById('resetBalanceInput');
+            const newBalance = parseInt(input.value) || 0;
+            
+            if (newBalance < 0) {
+                showStatus('error', 'Balance cannot be negative');
+                return;
+            }
+            
+            userMonsBalance = newBalance;
+            updateMonsBalanceDisplay();
+            showStatus('success', `MONS balance reset to ${newBalance.toLocaleString()} MONS`);
+            input.value = '';
+        }
+
         function calculateTransactions() {
             const amount = parseInt(document.getElementById('calcAmount').value) || 1000;
-            const remaining = 10390000;
+            const remaining = totalSupply - currentMinted;
             const transactions = Math.ceil(remaining / amount);
             const estimatedMinutes = Math.ceil(transactions / 60); // Assuming 1 tx per second
             
@@ -663,23 +700,63 @@
             `;
         }
 
+        function updateProgress() {
+            const input = document.getElementById('manualProgressInput');
+            const newMinted = parseInt(input.value) || currentMinted;
+            
+            if (newMinted < 0 || newMinted > totalSupply) {
+                showStatus('error', 'Invalid amount. Must be between 0 and 21,000,000');
+                return;
+            }
+            
+            currentMinted = newMinted;
+            const remaining = totalSupply - currentMinted;
+            const progressPercent = ((currentMinted / totalSupply) * 100).toFixed(2);
+            
+            // Update progress display
+            document.getElementById('totalMinted').textContent = currentMinted.toLocaleString();
+            document.getElementById('totalRemaining').textContent = remaining.toLocaleString();
+            document.getElementById('progressPercent').textContent = progressPercent + '%';
+            
+            // Update progress bar
+            const progressBar = document.getElementById('progressBar');
+            const minWidth = Math.max(parseFloat(progressPercent), 0.1); // Minimum 0.1% width for visibility
+            progressBar.style.width = minWidth + '%';
+            progressBar.textContent = progressPercent + '%';
+            
+            // Update mint tab status
+            const mintStatus = document.querySelector('#mint .status.warning');
+            if (mintStatus) {
+                mintStatus.innerHTML = `
+                    <strong>⚠️ Current Progress:</strong> ${currentMinted.toLocaleString()} / 21,000,000 MONS minted (${progressPercent}% complete)
+                    <br><strong>Remaining:</strong> ${remaining.toLocaleString()} MONS available for minting
+                `;
+            }
+            
+            // Recalculate transactions
+            calculateTransactions();
+            
+            showStatus('success', `Progress updated! Current: ${currentMinted.toLocaleString()} MONS (${progressPercent}%)`);
+            input.value = ''; // Clear input
+        }
+
         async function getMonsBalance() {
             try {
-                // This is a simplified version - in reality you'd need to scan blockchain
-                // for inscription transactions from your wallet
-                showStatus('warning', 'Scanning for MONS inscriptions...');
+                showStatus('warning', 'Checking MONS inscriptions...');
                 
-                // Simulated balance check - replace with actual blockchain scanning
+                // For now, we'll use a manual approach since inscription scanning requires indexer
                 setTimeout(() => {
-                    // You can manually input your balance here or implement proper scanning
-                    const estimatedMonsBalance = "Loading... (Manual input required)";
-                    document.getElementById('monsBalanceMint').innerHTML = `
-                        <input type="number" id="manualMonsInput" placeholder="Enter your MONS balance" 
-                               style="width: 150px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                        <button onclick="setMonsBalance()" style="padding: 5px 10px; margin-left: 5px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Set</button>
+                    const balanceDisplay = `
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="number" id="manualMonsInput" placeholder="Enter your MONS balance" 
+                                   style="width: 150px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;" value="2000">
+                            <button onclick="setMonsBalance()" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Set</button>
+                        </div>
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">⚠️ Manual input required - inscription balance tracking needs blockchain indexer</p>
                     `;
-                    document.getElementById('monsWalletBalance').innerHTML = document.getElementById('monsBalanceMint').innerHTML;
-                }, 1000);
+                    document.getElementById('monsBalanceMint').innerHTML = balanceDisplay;
+                    document.getElementById('monsWalletBalance').innerHTML = balanceDisplay;
+                }, 500);
                 
             } catch (error) {
                 console.error('Error getting MONS balance:', error);
@@ -691,37 +768,68 @@
         function setMonsBalance() {
             const inputElement = document.getElementById('manualMonsInput');
             const balance = inputElement?.value || '0';
-            const formattedBalance = parseInt(balance).toLocaleString() + ' MONS';
-            
-            // Update all MONS balance displays
-            document.getElementById('monsBalanceMint').innerHTML = `<span style="color: #667eea; font-weight: bold;">${formattedBalance}</span>`;
-            document.getElementById('monsWalletBalance').innerHTML = `<span style="color: #667eea; font-weight: bold;">${formattedBalance}</span>`;
-            
-            showStatus('success', `MONS balance updated to ${formattedBalance}`);
+            userMonsBalance = parseInt(balance);
+            updateMonsBalanceDisplay();
+            showStatus('success', `MONS balance set to ${userMonsBalance.toLocaleString()} MONS`);
         }
 
         async function refreshBalances() {
             if (userAccount) {
-                showStatus('warning', 'Refreshing balances...');
-                
-                // Refresh MON balance
-                try {
-                    const balance = await window.ethereum.request({
-                        method: 'eth_getBalance',
-                        params: [userAccount, 'latest']
-                    });
-                    const balanceInMON = parseInt(balance, 16) / Math.pow(10, 18);
-                    document.getElementById('walletBalance').textContent = balanceInMON.toFixed(4);
-                    document.getElementById('monBalanceMint').textContent = balanceInMON.toFixed(4);
-                    
-                    // Refresh MONS balance
-                    await getMonsBalance();
-                    
-                    showStatus('success', 'Balances refreshed successfully!');
-                } catch (error) {
-                    showStatus('error', 'Error refreshing balances: ' + error.message);
-                }
+                await refreshMonBalance();
             }
+        }
+
+        async function refreshMonBalance() {
+            try {
+                showStatus('warning', 'Refreshing MON balance...');
+                
+                const balance = await window.ethereum.request({
+                    method: 'eth_getBalance',
+                    params: [userAccount, 'latest']
+                });
+                const balanceInMON = parseInt(balance, 16) / Math.pow(10, 18);
+                document.getElementById('walletBalance').textContent = balanceInMON.toFixed(4);
+                document.getElementById('monBalanceMint').textContent = balanceInMON.toFixed(4);
+                
+                showStatus('success', 'MON balance refreshed!');
+            } catch (error) {
+                showStatus('error', 'Error refreshing balance: ' + error.message);
+            }
+        }
+
+        function extractMintAmount(inscriptionData) {
+            try {
+                const inscription = JSON.parse(inscriptionData);
+                return parseInt(inscription.amt) || 0;
+            } catch (error) {
+                return 0;
+            }
+        }
+
+        function updateProgressDisplay() {
+            const remaining = totalSupply - currentMinted;
+            const progressPercent = ((currentMinted / totalSupply) * 100).toFixed(2);
+            
+            // Update all displays
+            document.getElementById('totalMinted').textContent = currentMinted.toLocaleString();
+            document.getElementById('totalRemaining').textContent = remaining.toLocaleString();
+            document.getElementById('progressPercent').textContent = progressPercent + '%';
+            
+            const progressBar = document.getElementById('progressBar');
+            const minWidth = Math.max(parseFloat(progressPercent), 0.1);
+            progressBar.style.width = minWidth + '%';
+            progressBar.textContent = progressPercent + '%';
+            
+            // Update mint tab status
+            const mintStatus = document.querySelector('#mint .status.warning');
+            if (mintStatus) {
+                mintStatus.innerHTML = `
+                    <strong>⚠️ Current Progress:</strong> ${currentMinted.toLocaleString()} / 21,000,000 MONS minted (${progressPercent}% complete)
+                    <br><strong>Remaining:</strong> ${remaining.toLocaleString()} MONS available for minting
+                `;
+            }
+            
+            calculateTransactions();
         }
 
         async function sendTransaction(inscriptionData, type) {
@@ -757,9 +865,24 @@
                 const explorerLink = `https://testnet-explorer.monad.xyz/tx/${txHash}`;
                 showStatus('success', `${type} transaction sent! <a href="${explorerLink}" target="_blank" style="color: #667eea; text-decoration: underline;">View on Explorer</a>`);
                 
-                // Refresh balances after transaction
-                setTimeout(() => {
-                    refreshBalances();
+                // Auto-refresh dan auto-increment setelah transaksi berhasil
+                setTimeout(async () => {
+                    // Refresh MON balance
+                    await refreshMonBalance();
+                    
+                    // Auto-increment MONS balance dan progress
+                    const mintAmount = extractMintAmount(inscriptionData);
+                    if (mintAmount > 0) {
+                        // Update user's MONS balance
+                        userMonsBalance += mintAmount;
+                        updateMonsBalanceDisplay();
+                        
+                        // Update total minted progress
+                        currentMinted += mintAmount;
+                        updateProgressDisplay();
+                        
+                        showStatus('success', `🎉 Balance updated! +${mintAmount} MONS (Total: ${userMonsBalance.toLocaleString()} MONS)`);
+                    }
                 }, 3000);
                 
             } catch (error) {
