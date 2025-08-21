@@ -1,423 +1,1292 @@
-<!doctype html>
-<html lang="en" class="dark">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MON-20 Mint & Trade Tool — Monad Testnet</title>
-  <meta name="description" content="Mint and transfer MON-20 inscriptions on Monad Testnet. Built for $MONS with 18 decimals, 1000 max per mint." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui'] },
-          colors: { brand: { 500: '#71F3C5', 600: '#42e7ad', 700: '#1bd096' } },
-          boxShadow: { glass: '0 8px 30px rgba(0,0,0,0.25)' }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MON-20 | First Inscription Token on MONAD</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.2.2/web3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-      },
-      darkMode: 'class'
-    }
-  </script>
-  <style>
-    html, body { height: 100%; }
-    .card { @apply bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-glass; }
-    .btn { @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-semibold transition active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-brand-500; }
-    .btn-primary { @apply bg-brand-600 hover:bg-brand-700 text-slate-900; }
-    .btn-secondary { @apply bg-white/10 hover:bg-white/20 text-white; }
-    .input { @apply w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 placeholder-slate-400 focus:ring-2 focus:ring-brand-500 focus:outline-none; }
-    .stat { @apply text-sm text-slate-300; }
-  </style>
-  <!-- Ethers v6 -->
-  <script src="https://unpkg.com/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #2d1b69 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(119, 198, 255, 0.3) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(255, 107, 107, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a0a0ff;
+            margin-bottom: 20px;
+        }
+
+        .ticker-info {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .ticker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .ticker-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ticker-label {
+            font-size: 0.9rem;
+            color: #a0a0ff;
+            margin-bottom: 5px;
+        }
+
+        .ticker-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a0a0ff;
+            font-weight: 500;
+        }
+
+        .input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.3);
+        }
+
+        .button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            color: white;
+        }
+
+        .button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .button-secondary {
+            background: linear-gradient(135deg, #45b7d1, #96c93f);
+            color: white;
+        }
+
+        .button-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(69, 183, 209, 0.4);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+        }
+
+        .status-error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #F44336;
+            color: #F44336;
+        }
+
+        .status-info {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid #2196F3;
+            color: #2196F3;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .wallet-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            color: #a0a0ff;
+        }
+
+        .footer a {
+            color: #4ecdc4;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .network-info {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #FFC107;
+            color: #FFC107;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4ecdc4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .logo {
+                font-size: 2.5rem;
+            }
+            
+            .ticker-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(78, 205, 196, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(78, 205, 196, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(78, 205, 196, 0); }
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white min-h-full">
-  <div class="max-w-6xl mx-auto p-4 md:p-8">
-    <!-- Header -->
-    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <div>
-        <h1 class="text-2xl md:text-4xl font-bold tracking-tight">MON-20 Mint & Trade Tool</h1>
-        <p class="text-slate-300 mt-1">Monad Testnet • Ticker: <span class="font-semibold">$MONS</span> • 18 decimals • Limit: <span class="font-semibold">1000 MONS / mint</span></p>
-        <p class="text-slate-400 text-sm mt-1">Contract: <code class="break-all">0x07169f0F890C3595421512D98DC79b8bce6E5fA6</code></p>
-      </div>
-      <div class="flex items-center gap-3">
-        <button id="switchNetworkBtn" class="btn btn-secondary">Switch to Monad Testnet</button>
-        <button id="connectBtn" class="btn btn-primary">Connect Wallet</button>
-      </div>
-    </header>
-
-    <!-- Notices -->
-    <div class="card mt-6 p-4 md:p-5">
-      <div class="flex items-start gap-3">
-        <div class="mt-0.5">⚠️</div>
-        <div class="text-sm leading-relaxed text-slate-200">
-          <p><span class="font-semibold">Rule:</span> Any mint request above <span class="font-semibold">1000 MONS</span> will be treated as <span class="font-semibold">invalid / not indexed</span>. Stay within the limit.</p>
-          <p class="mt-1">Network: <span class="font-mono">chainId 10143 (0x279F)</span> • RPC: <a class="underline decoration-dotted" href="https://testnet-rpc.monad.xyz" target="_blank" rel="noreferrer">https://testnet-rpc.monad.xyz</a></p>
+<body>
+    <div class="background-animation"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1 class="logo">MON-20</h1>
+            <p class="subtitle">The First Inscription Token on MONAD Testnet</p>
+            
+            <div class="ticker-info">
+                <div class="ticker-grid">
+                    <div class="ticker-item">
+                        <div class="ticker-label">Ticker</div>
+                        <div class="ticker-value">$MONS</div>
+                    </div>
+                    <div class="ticker-item">
+                        <div class="ticker-label">Max Supply</div>
+                        <div class="ticker-value">21,000,000</div>
+                    </div>
+                    <div class="ticker-item">
+                        <div class="ticker-label">Per Mint</div>
+                        <div class="ticker-value">1,000 MONS</div>
+                    </div>
+                    <div class="ticker-item">
+                        <div class="ticker-label">Decimals</div>
+                        <div class="ticker-value">18</div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <div class="network-info">
+            <strong>MONAD Testnet</strong> | Chain ID: 10143 | Contract: 0x07169f0F890C3595421512D98DC79b8bce6E5fA6
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h2 class="card-title">🚀 Mint $MONS</h2>
+                
+                <div class="input-group">
+                    <label class="label">Amount to Mint (max 1,000 per transaction)</label>
+                    <input type="number" id="mintAmount" class="input" placeholder="1000" min="1" max="1000" value="1000">
+                </div>
+
+                <button id="connectWallet" class="button button-primary">Connect Wallet</button>
+                <button id="mintButton" class="button button-secondary" style="display: none;" disabled>Mint MONS</button>
+
+                <div id="walletInfo" class="wallet-info" style="display: none;">
+                    <div><strong>Address:</strong> <span id="walletAddress"></span></div>
+                    <div><strong>Balance:</strong> <span id="walletBalance"></span> MONS</div>
+                </div>
+
+                <div id="mintStatus"></div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">📊 Minting Progress</h2>
+                
+                <div class="ticker-item">
+                    <div class="ticker-label">Total Minted</div>
+                    <div class="ticker-value" id="totalMinted">Loading...</div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+                </div>
+
+                <div class="ticker-grid">
+                    <div class="ticker-item">
+                        <div class="ticker-label">Minted</div>
+                        <div class="ticker-value" id="mintedAmount">0</div>
+                    </div>
+                    <div class="ticker-item">
+                        <div class="ticker-label">Remaining</div>
+                        <div class="ticker-value" id="remainingAmount">21,000,000</div>
+                    </div>
+                    <div class="ticker-item">
+                        <div class="ticker-label">Holders</div>
+                        <div class="ticker-value" id="holdersCount">0</div>
+                    </div>
+                    <div class="ticker-item">
+                        <div class="ticker-label">Progress</div>
+                        <div class="ticker-value" id="mintProgress">0%</div>
+                    </div>
+                </div>
+
+                <button id="refreshData" class="button button-primary">Refresh Data</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">💸 Transfer MONS</h2>
+            
+            <div class="input-group">
+                <label class="label">Recipient Address</label>
+                <input type="text" id="transferTo" class="input" placeholder="0x...">
+            </div>
+
+            <div class="input-group">
+                <label class="label">Amount to Transfer</label>
+                <input type="number" id="transferAmount" class="input" placeholder="100" min="1">
+            </div>
+
+            <button id="transferButton" class="button button-secondary" disabled>Transfer MONS</button>
+            
+            <div id="transferStatus"></div>
+        </div>
     </div>
 
-    <!-- Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-      <!-- Left: Mint card -->
-      <section class="card p-5 lg:col-span-2">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl md:text-2xl font-semibold">Mint $MONS</h2>
-          <div class="text-xs text-slate-400">Mint fee & gas shown below</div>
-        </div>
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="text-sm text-slate-300">Ticker</label>
-            <input id="tickInput" class="input mt-1" value="MONS" maxlength="12"/>
-          </div>
-          <div>
-            <label class="text-sm text-slate-300">Amount (≤ 1000)</label>
-            <input id="amountInput" type="number" min="1" max="1000" step="1" class="input mt-1" placeholder="e.g. 100" />
-          </div>
-          <div>
-            <label class="text-sm text-slate-300">Mint Fee (per unit)</label>
-            <div id="mintFee" class="input mt-1 flex items-center">—</div>
-          </div>
-        </div>
-        <div class="mt-4 flex flex-wrap gap-3">
-          <button id="maxBtn" class="btn btn-secondary">Max (1000)</button>
-          <button id="mintBtn" class="btn btn-primary">Mint MON-20</button>
-        </div>
-        <p id="mintHint" class="text-xs text-slate-400 mt-2">Total cost = mintFee × amount + gas. Exact math depends on contract's mintFee definition.</p>
-        <pre id="mintStatus" class="mt-4 text-xs bg-black/30 rounded-xl p-3 overflow-auto max-h-40"></pre>
-      </section>
-
-      <!-- Right: Token stats -->
-      <aside class="card p-5">
-        <h3 class="text-lg font-semibold">$MONS Overview</h3>
-        <dl class="mt-3 space-y-2 text-sm">
-          <div class="flex justify-between"><dt class="stat">Max supply</dt><dd id="maxSupply">—</dd></div>
-          <div class="flex justify-between"><dt class="stat">Limit per mint</dt><dd id="limitPerMint">—</dd></div>
-          <div class="flex justify-between"><dt class="stat">Total minted</dt><dd id="minted">—</dd></div>
-          <div class="flex justify-between"><dt class="stat">Mint progress</dt><dd id="progress">—</dd></div>
-          <div class="flex justify-between"><dt class="stat">Holders</dt><dd id="holdersCount">—</dd></div>
-          <div class="flex justify-between"><dt class="stat">Your balance</dt><dd id="yourBalance">—</dd></div>
-        </dl>
-        <button id="refreshBtn" class="btn btn-secondary w-full mt-4">Refresh</button>
-      </aside>
+    <div class="footer">
+        <p>Created by <a href="https://x.com/ega_2ez4crypto" target="_blank">@ega_2ez4crypto</a></p>
+        <p>Contract: 0x07169f0F890C3595421512D98DC79b8bce6E5fA6</p>
+        <p>Join the MONAD community and be part of the first MON-20 inscription token!</p>
     </div>
 
-    <!-- Transfer / Trade & Activity -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-      <section class="card p-5">
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold">Peer‑to‑Peer Transfer</h3>
-          <span class="text-xs text-slate-400">Move MONS between wallets</span>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label class="text-sm text-slate-300">Recipient address</label>
-            <input id="toAddress" class="input mt-1" placeholder="0x…" />
-          </div>
-          <div>
-            <label class="text-sm text-slate-300">Amount (MONS)</label>
-            <input id="transferAmount" type="number" min="0" step="1" class="input mt-1" placeholder="e.g. 50" />
-          </div>
-        </div>
-        <div class="mt-4 flex gap-3">
-          <button id="transferBtn" class="btn btn-primary">Send</button>
-          <button id="maxSendBtn" class="btn btn-secondary">Send Max</button>
-        </div>
-        <pre id="transferStatus" class="mt-4 text-xs bg-black/30 rounded-xl p-3 overflow-auto max-h-40"></pre>
-      </section>
+    <script>
+        // Contract ABI and configuration
+        const CONTRACT_ADDRESS = '0x07169f0F890C3595421512D98DC79b8bce6E5fA6';
+        const CHAIN_ID = 10143;
+        const RPC_URL = 'https://testnet-rpc.monad.xyz';
+        const TICKER = 'MONS';
 
-      <section class="card p-5">
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold">Activity (Inscribe events)</h3>
-          <button id="loadActivityBtn" class="btn btn-secondary">Load</button>
-        </div>
-        <div id="activity" class="mt-4 space-y-3 text-sm max-h-80 overflow-auto"></div>
-      </section>
-    </div>
+        const CONTRACT_ABI = [
+            {
+                "inputs": [],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "maxSupply",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "limitPerMint",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "address",
+                        "name": "deployer",
+                        "type": "address"
+                    }
+                ],
+                "name": "Deploy",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": true,
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "string",
+                        "name": "operation",
+                        "type": "string"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "string",
+                        "name": "data",
+                        "type": "string"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "inscriptionNumber",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Inscribe",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "name": "balances",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "deployFee",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "maxSupply",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "limitPerMint",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "deployToken",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "token",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "emergencyWithdraw",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    }
+                ],
+                "name": "getBalance",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    }
+                ],
+                "name": "getHolders",
+                "outputs": [
+                    {
+                        "internalType": "address[]",
+                        "name": "",
+                        "type": "address[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    }
+                ],
+                "name": "getHoldersCount",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    }
+                ],
+                "name": "getMintProgress",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "minted",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "maxSupply",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "percentage",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    }
+                ],
+                "name": "getTokenInfo",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "maxSupply",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "limitPerMint",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "minted",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "deployer",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "holdersCount",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    }
+                ],
+                "name": "getTotalMinted",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "holders",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "inscriptionCounter",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "name": "isHolder",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "mint",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "mintFee",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "owner",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "newFee",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "setDeployFee",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "newFee",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "setMintFee",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "name": "tokens",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "maxSupply",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "limitPerMint",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "deployer",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "exists",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "deployedAt",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "name": "totalMinted",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "to",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "tick",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "transfer",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "withdraw",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "stateMutability": "payable",
+                "type": "receive"
+            }
+        ];
 
-    <!-- Holders table -->
-    <section class="card p-5 mt-6">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold">Top Holders</h3>
-        <div class="text-xs text-slate-400">Live query (first 100 addresses)</div>
-      </div>
-      <div class="mt-3 overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead class="text-slate-400">
-            <tr>
-              <th class="text-left py-2 pr-4">#</th>
-              <th class="text-left py-2 pr-4">Address</th>
-              <th class="text-right py-2">Balance (MONS)</th>
-            </tr>
-          </thead>
-          <tbody id="holdersTable"></tbody>
-        </table>
-      </div>
-    </section>
+        let web3;
+        let contract;
+        let userAccount;
 
-    <!-- Footer -->
-    <footer class="text-center text-slate-400 text-sm mt-8">
-      Created by <a class="underline decoration-dotted" href="https://x.com/ega_2ez4crypto" target="_blank" rel="noreferrer">@ega_2ez4crypto</a> • Built for the Monad Testnet community • Not audited, use at your own risk.
-    </footer>
-  </div>
-
-  <script>
-    const RPC_URL = 'https://testnet-rpc.monad.xyz';
-    const CHAIN_ID_DEC = 10143; // 0x279F
-    const CHAIN_ID_HEX = '0x279F';
-    const CONTRACT_ADDRESS = '0x07169f0F890C3595421512D98DC79b8bce6E5fA6';
-    const DECIMALS = 18n;
-
-    const ABI = [
-      {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"string","name":"tick","type":"string"},{"indexed":false,"internalType":"uint256","name":"maxSupply","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"limitPerMint","type":"uint256"},{"indexed":false,"internalType":"address","name":"deployer","type":"address"}],"name":"Deploy","type":"event"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":true,"internalType":"string","name":"tick","type":"string"},{"indexed":false,"internalType":"string","name":"operation","type":"string"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"string","name":"data","type":"string"},{"indexed":false,"internalType":"uint256","name":"inscriptionNumber","type":"uint256"}],"name":"Inscribe","type":"event"},
-      {"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"string","name":"","type":"string"}],"name":"balances","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"deployFee","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"tick","type":"string"},{"internalType":"uint256","name":"maxSupply","type":"uint256"},{"internalType":"uint256","name":"limitPerMint","type":"uint256"}],"name":"deployToken","outputs":[],"stateMutability":"payable","type":"function"},
-      {"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"emergencyWithdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"string","name":"tick","type":"string"}],"name":"getBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"tick","type":"string"}],"name":"getHolders","outputs":[{"internalType":"address[]","name":"","type":"address[]"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"tick","type":"string"}],"name":"getHoldersCount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"tick","type":"string"}],"name":"getMintProgress","outputs":[{"internalType":"uint256","name":"minted","type":"uint256"},{"internalType":"uint256","name":"maxSupply","type":"uint256"},{"internalType":"uint256","name":"percentage","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"tick","type":"string"}],"name":"getTokenInfo","outputs":[{"internalType":"uint256","name":"maxSupply","type":"uint256"},{"internalType":"uint256","name":"limitPerMint","type":"uint256"},{"internalType":"uint256","name":"minted","type":"uint256"},{"internalType":"address","name":"deployer","type":"address"},{"internalType":"uint256","name":"holdersCount","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"tick","type":"string"}],"name":"getTotalMinted","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"name":"holders","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"inscriptionCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"address","name":"","type":"address"}],"name":"isHolder","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"tick","type":"string"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"},
-      {"inputs":[],"name":"mintFee","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"uint256","name":"newFee","type":"uint256"}],"name":"setDeployFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"internalType":"uint256","name":"newFee","type":"uint256"}],"name":"setMintFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"internalType":"string","name":"","type":"string"}],"name":"tokens","outputs":[{"internalType":"uint256","name":"maxSupply","type":"uint256"},{"internalType":"uint256","name":"limitPerMint","type":"uint256"},{"internalType":"address","name":"deployer","type":"address"},{"internalType":"bool","name":"exists","type":"bool"},{"internalType":"uint256","name":"deployedAt","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"string","name":"","type":"string"}],"name":"totalMinted","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"string","name":"tick","type":"string"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transfer","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"stateMutability":"payable","type":"receive"}
-    ];
-
-    let provider, signer, contract, account;
-
-    const $ = (id) => document.getElementById(id);
-    const fmt = (n) => {
-      if (n === null || n === undefined) return '—';
-      try { return Number(n).toLocaleString(); } catch { return String(n); }
-    }
-    const toUnits = (weiBigInt) => {
-      // 18 decimals integer to string (no fractions)
-      // Contract seems to track whole units; display as integer
-      return (weiBigInt ?? 0n).toString();
-    }
-
-    async function ensureProvider() {
-      if (!window.ethereum) throw new Error('No injected wallet found. Please install MetaMask or a compatible wallet.');
-      provider = new ethers.BrowserProvider(window.ethereum, { name: 'monad-testnet', chainId: CHAIN_ID_DEC });
-      return provider;
-    }
-
-    async function switchToMonad() {
-      await ensureProvider();
-      try {
-        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID_HEX }] });
-      } catch (err) {
-        if (err.code === 4902 || /Unrecognized chain/.test(err.message)) {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: CHAIN_ID_HEX,
-              chainName: 'Monad Testnet',
-              nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-              rpcUrls: [RPC_URL],
-              blockExplorerUrls: []
-            }]
-          });
-        } else { throw err; }
-      }
-    }
-
-    async function connect() {
-      await switchToMonad();
-      const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      account = ethers.getAddress(accs[0]);
-      provider = await ensureProvider();
-      signer = await provider.getSigner();
-      contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-      $('connectBtn').textContent = account.slice(0,6) + '…' + account.slice(-4);
-      $('connectBtn').classList.add('btn-secondary');
-      $('connectBtn').classList.remove('btn-primary');
-      await loadAll();
-    }
-
-    async function readMintFee() {
-      try {
-        const fee = await contract.mintFee();
-        $('mintFee').textContent = fee.toString() + ' wei';
-      } catch (e) {
-        $('mintFee').textContent = '—';
-      }
-    }
-
-    async function loadOverview() {
-      const tick = $('tickInput').value.trim();
-      try {
-        const info = await contract.getTokenInfo(tick);
-        const progress = await contract.getMintProgress(tick);
-        const holdersCount = await contract.getHoldersCount(tick);
-        const bal = account ? await contract.getBalance(account, tick) : 0n;
-        $('maxSupply').textContent    = fmt(info.maxSupply);
-        $('limitPerMint').textContent = fmt(info.limitPerMint);
-        $('minted').textContent       = fmt(progress.minted);
-        $('progress').textContent     = `${fmt(progress.percentage)}%`;
-        $('holdersCount').textContent = fmt(holdersCount);
-        $('yourBalance').textContent  = toUnits(bal);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    async function loadHolders(limit = 100) {
-      const tick = $('tickInput').value.trim();
-      const tbody = $('holdersTable');
-      tbody.innerHTML = '<tr><td class="py-3" colspan="3">Loading…</td></tr>';
-      try {
-        const list = await contract.getHolders(tick);
-        const addrList = list.slice(0, limit);
-        const rows = [];
-        let idx = 1;
-        for (const a of addrList) {
-          try {
-            const bal = await contract.getBalance(a, tick);
-            rows.push(`<tr class=\"border-t border-white/10\"><td class=\"py-2 pr-4\">${idx++}</td><td class=\"py-2 pr-4 font-mono\">${a}</td><td class=\"py-2 text-right\">${toUnits(bal)}</td></tr>`);
-          } catch { /* ignore */ }
+        // Initialize Web3
+        async function initWeb3() {
+            if (typeof window.ethereum !== 'undefined') {
+                web3 = new Web3(window.ethereum);
+                contract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+            } else {
+                web3 = new Web3(RPC_URL);
+                contract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+            }
         }
-        if (!rows.length) {
-          tbody.innerHTML = '<tr><td class="py-3" colspan="3">No holders yet.</td></tr>';
-        } else {
-          tbody.innerHTML = rows.join('');
+
+        // Connect Wallet
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                showStatus('mintStatus', 'Please install MetaMask or another Web3 wallet!', 'error');
+                return;
+            }
+
+            try {
+                showStatus('mintStatus', 'Connecting wallet...', 'info');
+                
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
+                });
+
+                // Switch to MONAD testnet
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x' + CHAIN_ID.toString(16) }],
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x' + CHAIN_ID.toString(16),
+                                chainName: 'MONAD Testnet',
+                                nativeCurrency: {
+                                    name: 'MONAD',
+                                    symbol: 'MONAD',
+                                    decimals: 18
+                                },
+                                rpcUrls: [RPC_URL],
+                                blockExplorerUrls: ['https://testnet-explorer.monad.xyz']
+                            }]
+                        });
+                    }
+                }
+
+                userAccount = accounts[0];
+                document.getElementById('connectWallet').style.display = 'none';
+                document.getElementById('mintButton').style.display = 'block';
+                document.getElementById('mintButton').disabled = false;
+                document.getElementById('transferButton').disabled = false;
+                document.getElementById('walletInfo').style.display = 'block';
+                
+                updateWalletInfo();
+                showStatus('mintStatus', 'Wallet connected successfully!', 'success');
+
+            } catch (error) {
+                console.error('Connection failed:', error);
+                showStatus('mintStatus', 'Failed to connect wallet: ' + error.message, 'error');
+            }
         }
-      } catch (e) {
-        console.error(e);
-        tbody.innerHTML = '<tr><td class="py-3" colspan="3">Failed to load holders.</td></tr>';
-      }
-    }
 
-    async function loadActivity() {
-      const div = $('activity');
-      div.innerHTML = 'Loading logs…';
-      try {
-        const iface = new ethers.Interface(ABI);
-        const topic = iface.getEvent('Inscribe').topicHash;
-        const tick = $('tickInput').value.trim();
-        // Filter by event signature only; we'll decode and show only this tick
-        const latest = await provider.getBlockNumber();
-        const from = latest > 50000 ? latest - 50000 : 0; // recent window to avoid heavy queries
-        const logs = await provider.getLogs({ address: CONTRACT_ADDRESS, fromBlock: from, toBlock: latest, topics: [topic] });
-        const items = logs
-          .map(l => ({ ...iface.decodeEventLog('Inscribe', l.data, l.topics), blockNumber: l.blockNumber, txHash: l.transactionHash }))
-          .filter(ev => (ev.tick === tick))
-          .reverse()
-          .slice(0, 50);
-        if (!items.length) return div.innerHTML = 'No recent activity.';
-        div.innerHTML = items.map((ev) => {
-          const user = ev.user;
-          const op = ev.operation;
-          const amt = ev.amount?.toString?.() ?? ev.amount;
-          const ins = ev.inscriptionNumber?.toString?.() ?? ev.inscriptionNumber;
-          return `<div class=\"p-3 rounded-xl bg-white/5 border border-white/10\">
-            <div class=\"text-xs text-slate-400\">Block #${ev.blockNumber}</div>
-            <div class=\"mt-1\"><span class=\"font-mono\">${user}</span> <span class=\"text-slate-300\">${op}</span> <span class=\"font-semibold\">${amt} MONS</span> • Inscription #${ins}</div>
-            <a class=\"text-xs underline decoration-dotted\" href=\"https://monadscan.io/tx/${ev.txHash}\" target=\"_blank\" rel=\"noreferrer\">View tx</a>
-          </div>`;
-        }).join('');
-      } catch (e) {
-        console.error(e);
-        div.textContent = 'Failed to load activity.';
-      }
-    }
+        // Update wallet information
+        async function updateWalletInfo() {
+            if (!userAccount) return;
 
-    async function doMint() {
-      const tick = $('tickInput').value.trim();
-      const amount = Math.floor(Number($('amountInput').value || '0'));
-      const status = $('mintStatus');
-      status.textContent = '';
-      if (!amount || amount < 1) return status.textContent = 'Enter a valid amount (1–1000).';
-      if (amount > 1000) return status.textContent = 'Amount exceeds 1000 — this will be invalid / not indexed.';
-      try {
-        const feePer = await contract.mintFee();
-        // conservative: assume fee applies per unit
-        const value = feePer * BigInt(amount);
-        const tx = await contract.mint(tick, amount, { value });
-        status.textContent = 'Waiting for confirmation…
-' + tx.hash;
-        const rec = await tx.wait();
-        status.textContent = 'Minted! Tx: ' + tx.hash;
-        await loadAll();
-      } catch (e) {
-        status.textContent = (e?.shortMessage || e?.message || String(e));
-      }
-    }
+            document.getElementById('walletAddress').textContent = 
+                userAccount.substring(0, 6) + '...' + userAccount.substring(38);
 
-    async function doTransfer() {
-      const tick = $('tickInput').value.trim();
-      const to = $('toAddress').value.trim();
-      const amt = Math.floor(Number($('transferAmount').value || '0'));
-      const status = $('transferStatus');
-      status.textContent = '';
-      try {
-        if (!ethers.isAddress(to)) throw new Error('Invalid recipient address');
-        if (!(amt > 0)) throw new Error('Enter a positive amount');
-        const tx = await contract.transfer(to, tick, amt);
-        status.textContent = 'Sending…
-' + tx.hash;
-        await tx.wait();
-        status.textContent = 'Transferred! Tx: ' + tx.hash;
-        await loadAll();
-      } catch (e) {
-        status.textContent = (e?.shortMessage || e?.message || String(e));
-      }
-    }
+            try {
+                const balance = await contract.methods.getBalance(userAccount, TICKER).call();
+                const formattedBalance = formatNumber(web3.utils.fromWei(balance, 'ether'));
+                document.getElementById('walletBalance').textContent = formattedBalance;
+            } catch (error) {
+                document.getElementById('walletBalance').textContent = '0';
+            }
+        }
 
-    async function loadAll() {
-      await Promise.all([
-        readMintFee(),
-        loadOverview(),
-        loadHolders(),
-      ]);
-    }
+        // Mint tokens
+        async function mint() {
+            if (!userAccount) {
+                showStatus('mintStatus', 'Please connect your wallet first!', 'error');
+                return;
+            }
 
-    // UI hooks
-    $('connectBtn').addEventListener('click', connect);
-    $('switchNetworkBtn').addEventListener('click', switchToMonad);
-    $('refreshBtn').addEventListener('click', loadAll);
-    $('maxBtn').addEventListener('click', () => { $('amountInput').value = '1000'; });
-    $('mintBtn').addEventListener('click', doMint);
-    $('loadActivityBtn').addEventListener('click', loadActivity);
-    $('transferBtn').addEventListener('click', doTransfer);
-    $('maxSendBtn').addEventListener('click', async () => {
-      try {
-        const bal = await contract.getBalance(account, $('tickInput').value.trim());
-        $('transferAmount').value = (bal ?? 0n).toString();
-      } catch {}
-    });
+            const amount = parseInt(document.getElementById('mintAmount').value);
+            
+            if (!amount || amount < 1 || amount > 1000) {
+                showStatus('mintStatus', 'Please enter a valid amount (1-1000 MONS)', 'error');
+                return;
+            }
 
-    // Auto-init: set up read-only provider for first paint
-    (async () => {
-      try {
-        const rpc = new ethers.JsonRpcProvider(RPC_URL, CHAIN_ID_DEC);
-        provider = rpc;
-        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, rpc);
-        await Promise.all([readMintFee(), loadOverview(), loadHolders()]);
-      } catch (e) { console.warn('Init failed', e); }
-    })();
+            try {
+                document.getElementById('mintButton').disabled = true;
+                document.getElementById('mintButton').innerHTML = '<div class="loading"></div>Minting...';
+                showStatus('mintStatus', 'Processing mint transaction...', 'info');
 
-    // React to network/account changes
-    if (window.ethereum) {
-      window.ethereum.on?.('chainChanged', () => location.reload());
-      window.ethereum.on?.('accountsChanged', () => location.reload());
-    }
-  </script>
-</body>
-</html>
+                const mintFee = await contract.methods.mintFee().call();
+                const amountInWei = web3.utils.toWei(amount.toString(), 'ether');
+
+                const gasEstimate = await contract.methods.mint(TICKER, amountInWei).estimateGas({
+                    from: userAccount,
+                    value: mintFee
+                });
+
+                const tx = await contract.methods.mint(TICKER, amountInWei).send({
+                    from: userAccount,
+                    value: mintFee,
+                    gas: Math.floor(gasEstimate * 1.2)
+                });
+
+                showStatus('mintStatus', `Successfully minted ${amount} MONS! Transaction: ${tx.transactionHash}`, 'success');
+                updateWalletInfo();
+                loadTokenData();
+
+            } catch (error) {
+                console.error('Mint failed:', error);
+                showStatus('mintStatus', 'Mint failed: ' + (error.message || 'Unknown error'), 'error');
+            } finally {
+                document.getElementById('mintButton').disabled = false;
+                document.getElementById('mintButton').innerHTML = 'Mint MONS';
+            }
+        }
+
+        // Transfer tokens
+        async function transfer() {
+            if (!userAccount) {
+                showStatus('transferStatus', 'Please connect your wallet first!', 'error');
+                return;
+            }
+
+            const to = document.getElementById('transferTo').value;
+            const amount = parseInt(document.getElementById('transferAmount').value);
+
+            if (!to || !web3.utils.isAddress(to)) {
+                showStatus('transferStatus', 'Please enter a valid recipient address!', 'error');
+                return;
+            }
+
+            if (!amount || amount < 1) {
+                showStatus('transferStatus', 'Please enter a valid amount!', 'error');
+                return;
+            }
+
+            try {
+                document.getElementById('transferButton').disabled = true;
+                document.getElementById('transferButton').innerHTML = '<div class="loading"></div>Transferring...';
+                showStatus('transferStatus', 'Processing transfer transaction...', 'info');
+
+                const amountInWei = web3.utils.toWei(amount.toString(), 'ether');
+
+                const gasEstimate = await contract.methods.transfer(to, TICKER, amountInWei).estimateGas({
+                    from: userAccount
+                });
+
+                const tx = await contract.methods.transfer(to, TICKER, amountInWei).send({
+                    from: userAccount,
+                    gas: Math.floor(gasEstimate * 1.2)
+                });
+
+                showStatus('transferStatus', `Successfully transferred ${amount} MONS! Transaction: ${tx.transactionHash}`, 'success');
+                updateWalletInfo();
+                loadTokenData();
+
+                // Clear form
+                document.getElementById('transferTo').value = '';
+                document.getElementById('transferAmount').value = '';
+
+            } catch (error) {
+                console.error('Transfer failed:', error);
+                showStatus('transferStatus', 'Transfer failed: ' + (error.message || 'Unknown error'), 'error');
+            } finally {
+                document.getElementById('transferButton').disabled = false;
+                document.getElementById('transferButton').innerHTML = 'Transfer MONS';
+            }
+        }
+
+        // Load token data
+        async function loadTokenData() {
+            try {
+                const tokenInfo = await contract.methods.getTokenInfo(TICKER).call();
+                const maxSupply = parseInt(web3.utils.fromWei(tokenInfo.maxSupply, 'ether'));
+                const minted = parseInt(web3.utils.fromWei(tokenInfo.minted, 'ether'));
+                const holdersCount = parseInt(tokenInfo.holdersCount);
+
+                const remaining = maxSupply - minted;
+                const percentage = maxSupply > 0 ? ((minted / maxSupply) * 100).toFixed(2) : 0;
+
+                document.getElementById('totalMinted').textContent = formatNumber(minted);
+                document.getElementById('mintedAmount').textContent = formatNumber(minted);
+                document.getElementById('remainingAmount').textContent = formatNumber(remaining);
+                document.getElementById('holdersCount').textContent = formatNumber(holdersCount);
+                document.getElementById('mintProgress').textContent = percentage + '%';
+                
+                // Update progress bar
+                document.getElementById('progressBar').style.width = percentage + '%';
+
+                // Add pulse effect when near completion
+                const progressBar = document.getElementById('progressBar');
+                if (percentage > 90) {
+                    progressBar.classList.add('pulse');
+                } else {
+                    progressBar.classList.remove('pulse');
+                }
+
+            } catch (error) {
+                console.error('Failed to load token data:', error);
+            }
+        }
+
+        // Show status message
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = `status status-${type}`;
+            element.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    element.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Format numbers with commas
+        function formatNumber(num) {
+            return parseInt(num).toLocaleString();
+        }
+
+        // Event listeners
+        document.getElementById('connectWallet').addEventListener('click', connectWallet);
+        document.getElementById('mintButton').addEventListener('click', mint);
+        document.getElementById('transferButton').addEventListener('click', transfer);
+        document.getElementById('refreshData').addEventListener('click', loadTokenData);
+
+        // Validate mint amount
+        document.getElementById('mintAmount').addEventListener('input', function() {
+            const value = parseInt(this.value);
+            if (value > 1000) {
+                this.value = 1000;
+                showStatus('mintStatus', 'Maximum 1000 MONS per mint!', 'error');
+            } else if (value < 1 && this.value !== '') {
+                this.value = 1;
+            }
+        });
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            await initWeb3();
+            await loadTokenData();
+            
+            // Auto-refresh data every 30 seconds
+            setInterval(loadTokenData, 30000);
+            
+            // Check if wallet is already connected
+            if (typeof window.ethereum !== 'undefined') {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    userAccount = accounts[0];
+                    document.getElementById('connectWallet').style.display = 'none';
+                    document.getElementById('mintButton').style.display = 'block';
+                    document.getElementById('mintButton').disabled = false;
+                    document.getElementById('transferButton').disabled = false;
+                    document.getElementById('walletInfo').style.display = 'block';
+                    updateWalletInfo();
+                }
+            }
+        });
+
+        // Handle account changes
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length > 0) {
+                    userAccount = accounts[0];
+                    updateWalletInfo();
+                } else {
+                    userAccount = null;
+                    document.getElementById('connectWallet').style.display = 'block';
+                    document.getElementById('mintButton').style.display = 'none';
+                    document.getElementById('transferButton').disabled = true;
+                    document.getElementById('walletInfo').style.display = 'none';
+                }
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                window.location.reload();
+            });
+        }
+    </script>
