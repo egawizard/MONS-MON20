@@ -2,72 +2,131 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MON-20 Minimal Mint Test</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.4/dist/ethers.min.js"></script>
+  <title>MON-20 Mint & Indexer</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background:#0d1117; color:#e6edf3; padding:20px; }
+    button { background:#238636; color:white; border:none; padding:10px 20px; margin:5px; cursor:pointer; border-radius:6px; }
+    button:hover { background:#2ea043; }
+    input { padding:5px; margin:5px; }
+    h2,h3 { color:#58a6ff; }
+    pre { background:#161b22; padding:10px; border-radius:6px; max-height:200px; overflow:auto; }
+  </style>
 </head>
-<body style="font-family:sans-serif; padding:20px;">
-  <h2>MON-20 Mint Test</h2>
-  
+<body>
+  <h2>MON-20 Minting Tool — Monad Testnet</h2>
   <button onclick="connectWallet()">Connect Wallet</button>
   <p id="wallet">Not connected</p>
-  
+
+  <h3>Mint MONS</h3>
   <input id="amt" type="number" value="1000" />
   <button onclick="mint()">Mint</button>
-  
-  <pre id="log"></pre>
-  
-<script>
-let signer;
+  <p id="mintStatus"></p>
 
-async function connectWallet() {
-  if (!window.ethereum) {
-    alert("MetaMask not found!");
-    return;
-  }
+  <h3>Progress</h3>
+  <p>Total Minted: <span id="totalMinted">0</span></p>
+  <p>Total Holders: <span id="totalHolders">0</span></p>
+  <h4>Top Holders</h4>
+  <ul id="topHoldersList"></ul>
+
+  <h3>Live Transactions</h3>
+  <div id="liveTxs"></div>
+
+  <pre id="log"></pre>
+
+<script>
+const RPC = "https://testnet-rpc.monad.xyz";
+const TICK = "MONS";
+const provider = new ethers.providers.JsonRpcProvider(RPC);
+let signer;
+let holders = {};
+
+function log(msg){
+  const el = document.getElementById("log");
+  el.textContent += msg + "\n";
+  el.scrollTop = el.scrollHeight;
+}
+
+async function connectWallet(){
+  if (!window.ethereum) return alert("MetaMask not found!");
   try {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    signer = await provider.getSigner();
+    const web3 = new ethers.providers.Web3Provider(window.ethereum);
+    await web3.send("eth_requestAccounts", []);
+    signer = web3.getSigner();
     const addr = await signer.getAddress();
     document.getElementById("wallet").innerText = "Connected: " + addr;
     log("Wallet connected: " + addr);
-  } catch (err) {
-    log("Connect error: " + err.message);
+  } catch(e){
+    log("Connect error: "+e.message);
   }
 }
 
-async function mint() {
-  if (!signer) {
-    alert("Connect wallet first!");
-    return;
-  }
+async function mint(){
+  if (!signer) return alert("Connect wallet first!");
   try {
     const addr = await signer.getAddress();
     const amt = document.getElementById("amt").value;
-    const inscription = {
-      p: "mon-20",
-      op: "mint",
-      tick: "MONS",
-      amt: amt.toString()
-    };
-    
+    const inscription = { p:"mon-20", op:"mint", tick:TICK, amt:amt.toString() };
     const tx = await signer.sendTransaction({
       to: addr,
       value: 0,
-      data: ethers.hexlify(ethers.toUtf8Bytes(JSON.stringify(inscription)))
+      data: ethers.utils.hexlify(ethers.utils.toUtf8Bytes(JSON.stringify(inscription)))
     });
-    
-    log("Tx sent: " + tx.hash);
+    document.getElementById("mintStatus").innerText = "Tx sent: "+tx.hash;
+    log("Mint tx: "+tx.hash);
     const receipt = await tx.wait();
-    log("Tx confirmed in block " + receipt.blockNumber);
-  } catch (err) {
-    log("Mint error: " + err.message);
+    document.getElementById("mintStatus").innerText = "Confirmed in block "+receipt.blockNumber;
+    log("Confirmed: "+tx.hash);
+    await scanBlocks();
+  } catch(e){
+    log("Mint error: "+e.message);
   }
 }
 
-function log(msg) {
-  document.getElementById("log").innerText += msg + "\n";
+async function scanBlocks(){
+  const latest = await provider.getBlockNumber();
+  const start = latest - 1000;
+  for (let i=start;i<=latest;i++){
+    const block = await provider.getBlockWithTransactions(i);
+    for (const tx of block.transactions){
+      if (!tx.to || tx.to.toLowerCase()!==tx.from.toLowerCase()) continue;
+      if (!tx.data || tx.data==="0x") continue;
+      let parsed;
+      try {
+        parsed = JSON.parse(ethers.utils.toUtf8String(tx.data));
+      } catch(e){ continue; }
+      if (!parsed.p || parsed.p.toLowerCase()!=="mon-20") continue;
+      if (String(parsed.tick||"").toUpperCase()!==TICK) continue;
+      if (parsed.op && parsed.op.toLowerCase()==="mint"){
+        const amt = parseInt(parsed.amt||"0");
+        if (!amt) continue;
+        holders[tx.from] = (holders[tx.from]||0)+amt;
+        const div = document.createElement("div");
+        div.innerHTML = `Hash: <a href="#">${tx.hash}</a> — From: ${tx.from} — Amt: ${amt}`;
+        document.getElementById("liveTxs").prepend(div);
+      }
+    }
+  }
+  updateUI();
 }
+
+function updateUI(){
+  const totalMinted = Object.values(holders).reduce((a,b)=>a+b,0);
+  document.getElementById("totalMinted").innerText = totalMinted;
+  document.getElementById("totalHolders").innerText = Object.keys(holders).length;
+  const sorted = Object.entries(holders).sort((a,b)=>b[1]-a[1]);
+  const list = document.getElementById("topHoldersList");
+  list.innerHTML = "";
+  sorted.slice(0,10).forEach(([addr,amt])=>{
+    const li=document.createElement("li");
+    li.innerText = addr+" — "+amt;
+    list.appendChild(li);
+  });
+}
+
+// initial + refresh
+scanBlocks();
+setInterval(scanBlocks, 30000);
 </script>
 </body>
 </html>
