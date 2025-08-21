@@ -1,28 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8"/>
   <title>MONAD MON-20 • $MONS Explorer & Minter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme:{ extend:{
-        colors:{
-          bg:"#080b12", card:"#0f1422", accent:"#4ecdc4", accent2:"#45b7d1", ink:"#eaf2ff", mute:"#9aa3b2"
-        },
-        boxShadow:{
-          glow:"0 10px 30px rgba(78,205,196,.25)"
-        }
-     }}
+        colors:{ bg:"#070a12", card:"#0f1422", accent:"#4ecdc4", accent2:"#45b7d1", ink:"#eaf2ff", mute:"#9aa3b2" },
+        boxShadow:{ glow:"0 10px 30px rgba(78,205,196,.25)" }
+      }}
     }
   </script>
   <style>
-    .grad { background: radial-gradient(1200px 600px at 10% -10%, rgba(78,205,196,.25), transparent),
-                          radial-gradient(1000px 600px at 110% 10%, rgba(69,183,209,.2), transparent); }
-    .glass { backdrop-filter: blur(8px); background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06); }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .grad{background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(78,205,196,.22), transparent),
+      radial-gradient(1000px 600px at 110% 10%, rgba(69,183,209,.18), transparent);}
+    .glass{backdrop-filter: blur(8px); background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06);}
+    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
   </style>
 </head>
 <body class="bg-bg text-ink grad min-h-screen">
@@ -31,7 +28,7 @@
     <header class="flex flex-col lg:flex-row items-center justify-between gap-4 mb-6">
       <div>
         <h1 class="text-3xl font-black tracking-tight">MONAD <span class="text-accent">$MONS</span> • MON-20</h1>
-        <p class="text-mute">The first inscription token on Monad Testnet — fully on-chain, etherscription-style.</p>
+        <p class="text-mute">The first inscription token on Monad Testnet — fully on-chain (etherscription-style).</p>
       </div>
       <div class="flex items-center gap-3">
         <button id="connectBtn" class="px-4 py-2 font-bold rounded-xl bg-accent text-black hover:opacity-90 shadow-glow">Connect Wallet</button>
@@ -39,7 +36,7 @@
       </div>
     </header>
 
-    <!-- Top grid -->
+    <!-- Stats -->
     <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
       <div class="glass rounded-2xl p-5">
         <div class="text-mute text-sm">Total Minted</div>
@@ -59,11 +56,11 @@
       </div>
     </section>
 
-    <!-- Progress + indexer status -->
+    <!-- Progress & status -->
     <section class="glass rounded-2xl p-5 mb-6">
       <div class="flex items-center justify-between mb-3">
         <div class="font-semibold">Mint Progress</div>
-        <div class="text-sm text-mute"><span id="progressPct">0%</span></div>
+        <div class="text-sm text-mute"><span id="progressPct">0.00%</span></div>
       </div>
       <div class="w-full h-4 bg-[#1b2235] rounded-full overflow-hidden">
         <div id="progressBar" class="h-4 bg-gradient-to-r from-accent to-accent2 w-0 transition-all"></div>
@@ -77,9 +74,10 @@
         <div>•</div>
         <div>RPC: <span id="rpcUrl" class="mono">-</span></div>
       </div>
+      <div id="apiError" class="hidden mt-3 text-xs text-red-300">API error. Retrying…</div>
     </section>
 
-    <!-- Wallet panel -->
+    <!-- Wallet + Holders -->
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-10">
       <div class="glass rounded-2xl p-5">
         <div class="flex items-center justify-between">
@@ -127,7 +125,6 @@
       </div>
     </section>
 
-    <!-- Footer -->
     <footer class="text-center text-xs text-mute">
       Created by
       <a href="https://x.com/ega_2ez4crypto" target="_blank" class="text-accent hover:opacity-80">@ega_2ez4crypto</a>
@@ -135,203 +132,234 @@
     </footer>
   </div>
 
-  <!-- Libs -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.10.0/web3.min.js"></script>
+  <!-- libs -->
+  <script type="module">
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.min.js";
 
-<script>
-/* =========================
-   CONFIG
-   ========================= */
-const API_BASE = "https://mon20-indexer-backend-production.up.railway.app"; // <= ganti kalau perlu
-const CHAIN_ID_DEC = 10143;
-const CHAIN_ID_HEX = "0x" + CHAIN_ID_DEC.toString(16); // 0x279f
-const MAX_SUPPLY = 21_000_000;
-const MINT_LIMIT = 1000;
-const TICK = "MONS";
+    /* ========= CONFIG ========= */
+    const API_BASE = "https://mon20-indexer-backend-production.up.railway.app"; // ganti kalau perlu
+    const CHAIN_ID_DEC = 10143;
+    const CHAIN_ID_HEX = "0x" + CHAIN_ID_DEC.toString(16); // 0x279f
+    const MAX_SUPPLY = 21_000_000;
+    const MINT_LIMIT = 1000;
+    const TICK = "MONS";
+    document.getElementById("apiUrl").textContent = API_BASE;
 
-document.getElementById("apiUrl").textContent = API_BASE;
+    /* ========= STATE ========= */
+    let provider = null;
+    let signer = null;
+    let currentAccount = null;
+    let holdersCache = [];
 
-/* =========================
-   STATE
-   ========================= */
-let web3 = null;
-let currentAccount = null;
+    /* ========= HELPERS ========= */
+    const $ = id => document.getElementById(id);
+    const shortAddr = a => a ? a.slice(0,6)+"…"+a.slice(-4) : "-";
+    function jsonToHex(obj){
+      const s = JSON.stringify(obj);
+      const bytes = new TextEncoder().encode(s);
+      let hex = "0x";
+      for (const b of bytes) hex += b.toString(16).padStart(2,"0");
+      return hex;
+    }
+    const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
-/* =========================
-   HELPERS
-   ========================= */
-const $ = (id) => document.getElementById(id);
-const shortAddr = (a)=> a ? (a.slice(0,6)+"…"+a.slice(-4)) : "-";
-function toHexJson(str){
-  const bytes = new TextEncoder().encode(str);
-  return "0x"+Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
-}
+    /* ========= API CALLS (retry) ========= */
+    async function fetchJson(url, {tries=3, delay=1200} = {}){
+      for(let i=0;i<tries;i++){
+        try{
+          const res = await fetch(url, { cache:"no-store" });
+          if(!res.ok) throw new Error("HTTP "+res.status);
+          return await res.json();
+        }catch(e){
+          if(i===tries-1) throw e;
+          $("apiError").classList.remove("hidden");
+          await sleep(delay);
+        }
+      }
+    }
 
-/* =========================
-   FETCH: /stats & /holders
-   ========================= */
-async function fetchStats(){
-  const res = await fetch(API_BASE + "/stats", { cache: "no-store" });
-  if(!res.ok) throw new Error("stats "+res.status);
-  return await res.json();
-}
-async function fetchHolders(){
-  const res = await fetch(API_BASE + "/holders", { cache: "no-store" });
-  if(!res.ok) throw new Error("holders "+res.status);
-  return await res.json();
-}
+    async function refreshData(){
+      try{
+        const [stats, holders] = await Promise.all([
+          fetchJson(API_BASE+"/stats"),
+          fetchJson(API_BASE+"/holders")
+        ]);
 
-async function refreshData(){
-  try{
-    const [stats, holders] = await Promise.all([fetchStats(), fetchHolders()]);
+        // optional metadata from root
+        try {
+          const meta = await fetchJson(API_BASE+"/");
+          if(meta?.rpc) $("rpcUrl").textContent = meta.rpc;
+        } catch { /* ignore */ }
 
-    // Update RPC badge if backend exposes it via /
-    try {
-      const meta = await (await fetch(API_BASE + "/")).json();
-      if (meta && meta.rpc) $("rpcUrl").textContent = meta.rpc;
-    } catch { /* ignore */ }
+        // stats
+        const total = Number(stats?.totalMinted||0);
+        $("statTotalMinted").textContent = total.toLocaleString();
+        $("statRemaining").textContent = Math.max(0, MAX_SUPPLY-total).toLocaleString();
+        $("statMintCount").textContent = Number(stats?.mintCount||0).toLocaleString();
+        $("lastBlock").textContent = "Last synced block: " + Number(stats?.lastBlock||0).toLocaleString();
 
-    // Cards
-    $("statTotalMinted").textContent = Number(stats.totalMinted||0).toLocaleString();
-    $("statRemaining").textContent = Math.max(0, MAX_SUPPLY - Number(stats.totalMinted||0)).toLocaleString();
-    $("statHolders").textContent = (holders?.length||0).toLocaleString();
-    $("statMintCount").textContent = Number(stats.mintCount||0).toLocaleString();
+        // progress
+        const pct = Math.min(100, (total / MAX_SUPPLY) * 100);
+        $("progressBar").style.width = pct.toFixed(4)+"%";
+        $("progressPct").textContent = pct.toFixed(2)+"%";
 
-    // Progress
-    const pct = Math.min(100, (Number(stats.totalMinted||0) / MAX_SUPPLY) * 100);
-    $("progressBar").style.width = pct.toFixed(4) + "%";
-    $("progressPct").textContent = pct.toFixed(2) + "%";
+        // holders
+        holdersCache = Array.isArray(holders) ? holders : [];
+        $("statHolders").textContent = holdersCache.length.toLocaleString();
+        renderHolders();
 
-    // Indexer status
-    $("scanStatus").textContent = "Indexing: ✅ live";
-    $("lastBlock").textContent = "Last synced block: " + Number(stats.lastBlock||0).toLocaleString();
+        // wallet MONS balance
+        if(currentAccount){
+          const self = holdersCache.find(h => h.address.toLowerCase() === currentAccount.toLowerCase());
+          $("monsBalance").textContent = self ? Number(self.balance).toLocaleString() : "0";
+        }
 
-    // Holders table
-    const body = $("holdersTable");
-    body.innerHTML = "";
-    if(!holders || holders.length===0){
-      $("holdersEmpty").classList.remove("hidden");
-    } else {
+        $("scanStatus").textContent = "Indexing: ✅ live";
+        $("apiError").classList.add("hidden");
+      }catch(e){
+        $("scanStatus").textContent = "Indexing: ❌ "+(e?.message||e);
+        $("apiError").classList.remove("hidden");
+      }
+    }
+
+    function renderHolders(){
+      const body = $("holdersTable");
+      body.innerHTML = "";
+      if(holdersCache.length === 0){
+        $("holdersEmpty").classList.remove("hidden");
+        return;
+      }
       $("holdersEmpty").classList.add("hidden");
-      holders.slice(0,50).forEach((h, i)=>{
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="py-2 pr-3 text-mute">${i+1}</td>
-          <td class="py-2 pr-3 mono"><a class="hover:underline" target="_blank" href="https://testnet.monadexplorer.com/address/${h.address}">${shortAddr(h.address)}</a></td>
-          <td class="py-2 text-right font-semibold">${Number(h.balance).toLocaleString()}</td>
-        `;
-        body.appendChild(tr);
+      holdersCache
+        .slice(0, 100)
+        .forEach((h,i)=>{
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="py-2 pr-3 text-mute">${i+1}</td>
+            <td class="py-2 pr-3 mono">
+              <a class="hover:underline" target="_blank" href="https://testnet.monadexplorer.com/address/${h.address}">
+                ${shortAddr(h.address)}
+              </a>
+            </td>
+            <td class="py-2 text-right font-semibold">${Number(h.balance).toLocaleString()}</td>
+          `;
+          body.appendChild(tr);
+        });
+    }
+
+    /* ========= WALLET ========= */
+    async function ensureMonad(){
+      if(!window.ethereum) throw new Error("Wallet not found");
+      try{
+        await window.ethereum.request({
+          method:"wallet_switchEthereumChain",
+          params:[{ chainId: CHAIN_ID_HEX }]
+        });
+      }catch(switchErr){
+        // add
+        await window.ethereum.request({
+          method:"wallet_addEthereumChain",
+          params:[{
+            chainId: CHAIN_ID_HEX,
+            chainName:"Monad Testnet",
+            rpcUrls:["https://rpc.ankr.com/monad_testnet","https://testnet-rpc.monad.xyz"],
+            nativeCurrency:{ name:"MON", symbol:"MON", decimals:18 },
+            blockExplorerUrls:["https://testnet.monadexplorer.com"]
+          }]
+        });
+      }
+    }
+
+    async function connectWallet(){
+      try{
+        if(!window.ethereum) return alert("MetaMask not found");
+        await ensureMonad();
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        currentAccount = await signer.getAddress();
+
+        $("connectBtn").textContent = "Wallet Connected";
+        $("netBadge").textContent = "Monad Testnet (10143)";
+        $("walletAddr").textContent = currentAccount;
+        $("mintBtn").disabled = false;
+
+        await refreshMonBalance();
+        await refreshData();
+      }catch(e){
+        alert("Connect failed: "+(e?.message||e));
+      }
+    }
+    $("connectBtn").addEventListener("click", connectWallet);
+
+    async function refreshMonBalance(){
+      if(!provider || !currentAccount) return;
+      try{
+        const wei = await provider.getBalance(currentAccount);
+        $("monBalance").textContent = ethers.formatEther(wei);
+      }catch{}
+    }
+    setInterval(refreshMonBalance, 15000);
+
+    if(window.ethereum){
+      window.ethereum.on?.("accountsChanged", async (accs)=>{
+        if(accs && accs.length){
+          currentAccount = accs[0];
+          $("walletAddr").textContent = currentAccount;
+          signer = await provider.getSigner();
+          await refreshMonBalance();
+          await refreshData();
+        }
       });
+      window.ethereum.on?.("chainChanged", ()=>location.reload());
     }
 
-    // Update wallet MONS balance (if connected)
-    if(currentAccount){
-      const self = holders.find(x => x.address.toLowerCase() === currentAccount.toLowerCase());
-      $("monsBalance").textContent = self ? Number(self.balance).toLocaleString() : "0";
+    /* ========= MINT ========= */
+    async function mintToken(){
+      try{
+        if(!signer) return alert("Connect wallet first");
+        await ensureMonad();
+
+        const payload = { p:"mon-20", op:"mint", tick:TICK, amt:String(MINT_LIMIT) };
+        const dataHex = jsonToHex(payload);
+        const to = await signer.getAddress();
+
+        // kirim tx self-transfer
+        const tx = await signer.sendTransaction({ to, value: 0n, data: dataHex });
+        toast("Mint submitted", tx.hash);
+
+        // tunggu mined (1 konfirmasi)
+        $("mintBtn").disabled = true;
+        $("mintBtn").textContent = "Minting…";
+        await provider.waitForTransaction(tx.hash, 1, 180_000).catch(()=>{});
+        $("mintBtn").disabled = false;
+        $("mintBtn").textContent = "Mint 1000 MONS";
+
+        // refresh UI
+        await refreshData();
+        await refreshMonBalance();
+      }catch(e){
+        alert("Mint failed: " + (e?.message||e));
+      }
     }
-  }catch(e){
-    $("scanStatus").textContent = "Indexing: ❌ " + (e?.message||e);
-  }
-}
+    $("mintBtn").addEventListener("click", mintToken);
 
-/* Auto refresh */
-setInterval(refreshData, 8000);
-refreshData();
+    /* ========= UI: toast ========= */
+    function toast(title, hash){
+      const el = document.createElement("div");
+      el.className = "fixed right-4 bottom-4 p-4 rounded-xl glass shadow-glow w-[320px]";
+      el.innerHTML = `
+        <div class="font-bold">${title}</div>
+        <div class="text-xs text-mute mt-1">Tx:
+          <a target="_blank" class="underline hover:opacity-80" href="https://testnet.monadexplorer.com/tx/${hash}">${shortAddr(hash)}</a>
+        </div>`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 6500);
+    }
 
-/* =========================
-   WALLET
-   ========================= */
-async function ensureMonad(){
-  if(!window.ethereum) throw new Error("No wallet");
-  try{
-    await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_ID_HEX }] });
-  }catch(switchErr){
-    // add chain
-    await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{
-      chainId: CHAIN_ID_HEX,
-      chainName: "Monad Testnet",
-      rpcUrls: ["https://rpc.ankr.com/monad_testnet","https://testnet-rpc.monad.xyz"],
-      nativeCurrency: { name:"MON", symbol:"MON", decimals:18 },
-      blockExplorerUrls: ["https://testnet.monadexplorer.com"]
-    }]});
-  }
-}
-
-async function connectWallet(){
-  try{
-    await ensureMonad();
-    const accs = await window.ethereum.request({ method:"eth_requestAccounts" });
-    currentAccount = accs[0];
-    web3 = new Web3(window.ethereum);
-
-    $("connectBtn").textContent = "Wallet Connected";
-    $("netBadge").textContent = "Monad Testnet (10143)";
-    $("walletAddr").textContent = currentAccount;
-
-    // Balances now
-    await refreshMonBalance();
-    await refreshData(); // to fill MONS balance row
-  }catch(e){
-    alert("Connect failed: " + (e?.message||e));
-  }
-}
-$("connectBtn").addEventListener("click", connectWallet);
-
-async function refreshMonBalance(){
-  if(!web3 || !currentAccount) return;
-  try{
-    const wei = await web3.eth.getBalance(currentAccount);
-    $("monBalance").textContent = web3.utils.fromWei(wei,"ether");
-  }catch(e){ /* ignore */ }
-}
-setInterval(refreshMonBalance, 15000);
-
-// react to wallet changes
-if(window.ethereum){
-  window.ethereum.on?.("accountsChanged", (accs)=>{
-    if(accs && accs.length){ currentAccount = accs[0]; $("walletAddr").textContent = currentAccount; refreshMonBalance(); refreshData(); }
-  });
-  window.ethereum.on?.("chainChanged", (_)=>{ location.reload(); });
-}
-
-/* =========================
-   MINT (self-transfer inscription)
-   ========================= */
-async function mintToken(){
-  try{
-    if(!currentAccount){ return alert("Connect wallet first"); }
-    await ensureMonad();
-
-    const inscription = { p:"mon-20", op:"mint", tick:TICK, amt:String(MINT_LIMIT) };
-    const dataHex = toHexJson(JSON.stringify(inscription));
-    const tx = { from: currentAccount, to: currentAccount, value:"0x0", data:dataHex };
-
-    const hash = await window.ethereum.request({ method:"eth_sendTransaction", params:[tx] });
-    notify("Mint submitted", hash);
-
-    // optimistic refresh:
-    setTimeout(()=>{ refreshData(); }, 6000);
-  }catch(e){
-    alert("Mint failed: " + (e?.message||e));
-  }
-}
-$("mintBtn").addEventListener("click", mintToken);
-
-/* =========================
-   UI helper: toast
-   ========================= */
-function notify(title, hash){
-  const wrap = document.createElement("div");
-  wrap.className = "fixed right-4 bottom-4 p-4 rounded-xl glass shadow-glow w-[320px]";
-  wrap.innerHTML = `
-    <div class="font-bold">${title}</div>
-    <div class="text-xs text-mute mt-1">Tx sent:
-      <a target="_blank" class="underline hover:opacity-80" href="https://testnet.monadexplorer.com/tx/${hash}">${shortAddr(hash)}</a>
-    </div>
-  `;
-  document.body.appendChild(wrap);
-  setTimeout(()=>wrap.remove(), 6000);
-}
-</script>
+    /* ========= Boot ========= */
+    refreshData();
+    setInterval(refreshData, 8000);
+  </script>
 </body>
 </html>
