@@ -54,6 +54,7 @@
       <button id="connectBtn" class="secondary" onclick="connectWallet()">Connect Wallet</button>
       <button id="mintBtn" onclick="mintToken()" disabled>Mint 1000 MONS</button>
       <button id="resyncBtn" class="secondary" onclick="forceResync()">Resync from Deploy</button>
+      <button id="clearCacheBtn" class="secondary" onclick="clearCache()">Clear Cache</button>
       <span id="addrPill" class="pill mono" style="display:none"></span>
     </div>
 
@@ -100,6 +101,7 @@ window.addEventListener('load', async () => {
   if (!loaded) {
     state.lastProcessed = DEPLOY_BLOCK - 1;
   }
+  console.log("Cache loaded?", loaded, "lastProcessed=", state.lastProcessed);
   await fullIndexFromLastProcessed();
   setInterval(async () => {
     try {
@@ -187,6 +189,7 @@ async function pollAndProcessTx(hash){
 async function fullIndexFromLastProcessed(){
   try{
     const latest = await web3Read.eth.getBlockNumber();
+    console.log("fullIndexFromLastProcessed: from", state.lastProcessed+1, "to", latest);
     setScanStatus(`Starting index from block ${state.lastProcessed+1} to ${latest}…`);
     if (latest > state.lastProcessed) {
       await indexRange(state.lastProcessed+1, latest);
@@ -196,6 +199,7 @@ async function fullIndexFromLastProcessed(){
 
 async function indexRange(from, to){
   if(to < from){ return; }
+  console.log("IndexRange called", from, to);
   for(let start = from; start <= to; start += SCAN_BATCH){
     const end = Math.min(start + SCAN_BATCH - 1, to);
     setScanStatus(`Indexing blocks ${start.toLocaleString()} - ${end.toLocaleString()}…`);
@@ -300,6 +304,10 @@ function loadCache(){
     const raw = localStorage.getItem('monsIndexerCache');
     if(!raw) return false;
     const cache = JSON.parse(raw);
+    if(!cache.lastProcessed || cache.lastProcessed < DEPLOY_BLOCK){
+      console.warn("Cache invalid, resetting...");
+      return false;
+    }
     state.totalMinted = cache.totalMinted;
     state.mintCount = cache.mintCount;
     state.holders = new Map(cache.holders);
@@ -320,6 +328,11 @@ function forceResync(){
   updateLastBlock();
   localStorage.removeItem('monsIndexerCache');
   fullIndexFromLastProcessed();
+}
+
+function clearCache(){
+  localStorage.removeItem('monsIndexerCache');
+  alert('Cache cleared. Refresh the page to reindex from deploy.');
 }
 </script>
 </body>
