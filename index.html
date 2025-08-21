@@ -1,158 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MONAD MON-20 • Explorer & Minter</title>
+  <meta charset="UTF-8">
+  <title>MON-20 Explorer ($MONS)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.2/web3.min.js"></script>
   <style>
-    :root {
-      --bg:#0b0d14;--card:#141827;--accent:#4ecdc4;--accent2:#45b7d1;--muted:#9aa3b2;--text:#e9eef5;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
-    .container{max-width:1100px;margin:0 auto;padding:28px}
-    .title{font-weight:800;text-align:center;font-size:28px;margin:8px 0 6px}
-    .subtitle{text-align:center;color:var(--muted);margin:0 0 18px}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px auto 8px;max-width:980px}
-    .card{background:var(--card);border-radius:14px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-    .card h2{margin:0;font-size:28px;color:var(--accent)}
-    .card p{margin:6px 0 0;color:var(--muted);font-size:13px}
-    .progress{height:12px;background:#262a3a;border-radius:8px;overflow:hidden;margin:12px auto;max-width:980px}
-    .bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s ease}
-    .holders{max-width:980px;margin:18px auto}
-    .holders h3{margin:0 0 10px}
-    .holder{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
-    .status{color:var(--muted);text-align:center;margin-top:4px}
-    .footer{opacity:.7;text-align:center;margin:22px 0 10px;font-size:13px}
-    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,monospace}
-    .row{text-align:center;margin:20px 0;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-    button{background:var(--accent);border:none;color:#031016;font-weight:700;padding:10px 16px;border-radius:10px;cursor:pointer}
-    button:disabled{opacity:.55;cursor:not-allowed}
-    .pill{display:inline-block;background:#23283a;color:var(--text);padding:6px 10px;border-radius:999px}
-    @media (max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}}
+    body { font-family: sans-serif; background:#0b0d14; color:#e9eef5; margin:0; }
+    .container { max-width:1100px; margin:auto; padding:20px; }
+    h1 { text-align:center; color:#4ecdc4; }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin:20px 0; }
+    .card { background:#141827; padding:15px; border-radius:12px; text-align:center; }
+    .card h2 { margin:0; color:#4ecdc4; }
+    .progress { height:12px; background:#262a3a; border-radius:8px; overflow:hidden; margin:20px 0; }
+    .bar { height:100%; width:0; background:linear-gradient(90deg,#4ecdc4,#45b7d1); }
+    .row { text-align:center; margin:20px 0; }
+    button { background:#4ecdc4; border:none; padding:10px 18px; border-radius:8px; font-weight:bold; cursor:pointer; }
+    button:disabled { opacity:0.5; }
+    .holders { background:#141827; border-radius:12px; padding:15px; margin-top:20px; }
+    .holder { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .mono { font-family: monospace; }
+    .footer { text-align:center; opacity:.7; margin:30px 0 10px; font-size:14px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="title">MONAD MON-20</div>
-    <div id="subtitle" class="subtitle">The First Inscription Token on MONAD Testnet ($MONS)</div>
-
-    <div class="stats">
-      <div class="card"><h2 id="totalMinted">0</h2><p>Total Minted</p></div>
-      <div class="card"><h2 id="remaining">21,000,000</h2><p>Remaining</p></div>
-      <div class="card"><h2 id="holders">0</h2><p>Holders</p></div>
-      <div class="card"><h2 id="mintCount">0</h2><p>Mint Count</p></div>
-    </div>
-
-    <div class="progress"><div id="progressFill" class="bar"></div></div>
-    <div id="scanStatus" class="status">Fetching from API…</div>
-    <div id="lastBlock" class="status">Last synced block: -</div>
-
-    <div class="row">
-      <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
-      <button id="mintBtn" onclick="mintToken()" disabled>Mint 1000 MONS</button>
-      <span id="addrPill" class="mono pill" style="display:none"></span>
-    </div>
-    <div id="walletBalance" class="status">Balance: -</div>
-
-    <div class="card holders">
-      <h3>Top Holders</h3>
-      <div id="holdersList" class="mono"><div class="holder"><span>No holders yet</span><span>0 MONS</span></div></div>
-    </div>
-
-    <div class="footer">
-      Created by <a href="https://x.com/ega_2ez4crypto" target="_blank" style="color:var(--accent)">@ega_2ez4crypto</a><br/>
-      Fully decentralized • Powered by Monad Indexer API
-    </div>
+<div class="container">
+  <h1>MONAD MON-20 • $MONS</h1>
+  <div class="stats">
+    <div class="card"><h2 id="totalMinted">0</h2><p>Total Minted</p></div>
+    <div class="card"><h2 id="remaining">21,000,000</h2><p>Remaining</p></div>
+    <div class="card"><h2 id="holders">0</h2><p>Holders</p></div>
+    <div class="card"><h2 id="mintCount">0</h2><p>Mint Count</p></div>
+  </div>
+  <div class="progress"><div class="bar" id="progressFill"></div></div>
+  
+  <div class="row">
+    <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+    <span id="addr" class="mono"></span>
+    <div id="balance" style="margin-top:10px;color:#9aa3b2;"></div>
   </div>
 
+  <div class="holders">
+    <h3>Top Holders</h3>
+    <div id="holdersList"><div class="holder"><span>No holders yet</span><span>0 MONS</span></div></div>
+  </div>
+
+  <div class="footer">
+    Created by <a href="https://x.com/ega_2ez4crypto" target="_blank" style="color:#4ecdc4">@ega_2ez4crypto</a><br>
+    Fully on-chain • Powered by Monad Testnet
+  </div>
+</div>
+
 <script>
-const API = "https://mon20-indexer-backend-production.up.railway.app";
-const TICK = "MONS";
-const MINT_LIMIT = 1000;
-let currentAccount = null;
-let web3Wallet = null;
+const API = "https://mon20-indexer-backend-production.up.railway.app"; // ganti sesuai Railway URL
+const MAX_SUPPLY = 21000000;
+let web3;
+let currentAccount;
 
-async function loadStats() {
+// Fetch stats & holders
+async function loadData(){
   try {
-    const stats = await fetch(`${API}/stats`).then(r => r.json());
-    document.getElementById('totalMinted').innerText = stats.totalMinted.toLocaleString();
-    document.getElementById('mintCount').innerText = stats.mintCount.toLocaleString();
-    document.getElementById('holders').innerText = stats.holders.toLocaleString();
-    document.getElementById('remaining').innerText = (21000000 - stats.totalMinted).toLocaleString();
-    document.getElementById('progressFill').style.width = Math.min(100, (stats.totalMinted / 21000000) * 100) + '%';
-    document.getElementById('lastBlock').innerText = `Last synced block: ${stats.lastBlock.toLocaleString()}`;
-    document.getElementById('scanStatus').innerText = "Data fetched ✅";
-  } catch (err) {
-    document.getElementById('scanStatus').innerText = "Failed to fetch stats ❌";
-    console.error(err);
-  }
-}
+    const stats = await fetch(API + "/stats").then(r=>r.json());
+    const holders = await fetch(API + "/holders").then(r=>r.json());
 
-async function loadHolders() {
-  try {
-    const holders = await fetch(`${API}/holders`).then(r => r.json());
-    const list = document.getElementById('holdersList');
+    document.getElementById("totalMinted").innerText = stats.totalMinted.toLocaleString();
+    document.getElementById("remaining").innerText = (MAX_SUPPLY - stats.totalMinted).toLocaleString();
+    document.getElementById("holders").innerText = holders.length;
+    document.getElementById("mintCount").innerText = stats.mintCount.toLocaleString();
+
+    document.getElementById("progressFill").style.width = Math.min(100,(stats.totalMinted / MAX_SUPPLY) * 100) + "%";
+
+    const list = document.getElementById("holdersList");
     list.innerHTML = "";
-    if (holders.length === 0) {
-      list.innerHTML = `<div class="holder"><span>No holders yet</span><span>0 MONS</span></div>`;
+    if(holders.length===0){
+      list.innerHTML = '<div class="holder"><span>No holders yet</span><span>0 MONS</span></div>';
     } else {
-      holders.forEach(h => {
+      holders.forEach(h=>{
         list.innerHTML += `<div class="holder"><span>${h.address}</span><span>${h.balance.toLocaleString()} MONS</span></div>`;
       });
     }
-    updateWalletBalance(holders);
-  } catch (err) {
-    console.error(err);
+  } catch(e){
+    console.error("Failed to fetch stats", e);
   }
 }
 
+// Connect wallet
 async function connectWallet(){
-  if(!window.ethereum){ alert("MetaMask not found!"); return; }
+  if(!window.ethereum){ alert("Please install MetaMask!"); return; }
+  web3 = new Web3(window.ethereum);
   try {
-    const accs = await window.ethereum.request({ method:"eth_requestAccounts" });
-    currentAccount = accs[0];
-    web3Wallet = new Web3(window.ethereum);
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    currentAccount = accounts[0];
     document.getElementById("connectBtn").innerText = "Wallet Connected";
-    document.getElementById("mintBtn").disabled = false;
-    const pill = document.getElementById("addrPill");
-    pill.style.display="inline-block";
-    pill.textContent = shortAddr(currentAccount);
-    loadHolders();
+    document.getElementById("addr").innerText = shortAddr(currentAccount);
+    loadBalance();
   } catch(e){ console.error(e); }
 }
 
-function shortAddr(a){ return a ? a.slice(0,6)+"…"+a.slice(-4) : ""; }
-
-function updateWalletBalance(holders){
+// Fetch balance from holders API
+async function loadBalance(){
   if(!currentAccount) return;
-  const h = holders.find(x => x.address.toLowerCase() === currentAccount.toLowerCase());
-  const bal = h ? h.balance : 0;
-  document.getElementById("walletBalance").innerText = `Balance: ${bal.toLocaleString()} MONS`;
-}
-
-async function mintToken(){
-  if(!currentAccount){ alert("Connect wallet first"); return; }
-  const inscription = { p:"mon-20", op:"mint", tick:TICK, amt:String(MINT_LIMIT) };
-  const dataHex = "0x" + toHex(JSON.stringify(inscription));
-  const tx = { from: currentAccount, to: currentAccount, value:"0x0", data:dataHex };
   try {
-    const txHash = await window.ethereum.request({ method:"eth_sendTransaction", params:[tx] });
-    alert("Mint sent: " + txHash);
-  } catch(e){ console.error(e); alert("Mint failed: " + (e?.message||e)); }
+    const holders = await fetch(API + "/holders").then(r=>r.json());
+    const h = holders.find(x=>x.address.toLowerCase()===currentAccount.toLowerCase());
+    const bal = h ? h.balance : 0;
+    document.getElementById("balance").innerText = "Your Balance: " + bal.toLocaleString() + " MONS";
+  } catch(e){ console.error(e); }
 }
 
-function toHex(str){
-  const bytes = new TextEncoder().encode(str);
-  return Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
-}
+function shortAddr(a){ return a.slice(0,6)+"…"+a.slice(-4); }
 
-window.onload = () => {
-  loadStats();
-  loadHolders();
-  setInterval(() => { loadStats(); loadHolders(); }, 15000);
-};
+setInterval(loadData, 15000);
+loadData();
 </script>
 </body>
 </html>
